@@ -1,29 +1,99 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  
+}
+
+enum Role {
+  MEMBER_REGULAR
+  MEMBER_VIP
+  ADMIN
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  name             String?
-  projects         Project[]
-  stripeCustomerId String?   @unique
-  isActive         Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  clerkUserId String    @unique
+  email       String    @unique
+  name        String?
+  role        Role      @default(MEMBER_REGULAR)
+  endDate     DateTime? // Kapan membership berakhir
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  transactions Transaction[]
+  checkIns     CheckIn[]
+  bookings     ClassBooking[]
 }
 
-model Project {
-  id        String   @id @default(cuid())
-  name      String
-  userId    String
+model Transaction {
+  id        String            @id @default(cuid())
+  amount    Float
+  type      String // "HARIAN", "BULANAN_REGULAR", "BULANAN_VIP", "PAKET_ZUMBA"
+  method    String // "TUNAI", "TRANSFER"
+  status    TransactionStatus @default(PENDING)
+  createdAt DateTime          @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  adminId String? // Kasir yang memproses
+}
+
+model CheckIn {
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model GymClass {
+  id          String   @id @default(cuid())
+  name        String // e.g. "Zumba", "Pilates"
+  description String? // Deskripsi kelas untuk tampilan admin
+  category    String   @default("Umum") // Kategori kelas
+  schedule    DateTime
+  capacity    Int
+
+  bookings ClassBooking[]
+}
+
+model ClassBooking {
+  id        String   @id @default(cuid())
   createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  classId  String
+  gymClass GymClass @relation(fields: [classId], references: [id])
+}
+
+model MembershipPackage {
+  id             String   @id @default(cuid())
+  name           String   // misal: "1 Bulan", "3 Bulan"
+  description    String?  // Fasilitas paket
+  durationMonths Int      // Durasi paket dalam bulan
+  price          Float
+  originalPrice  Float?   // Harga coret
+  isPopular      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model GuideVideo {
+  id        String   @id @default(cuid())
+  title     String
+  url       String   // link YouTube
+  category  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

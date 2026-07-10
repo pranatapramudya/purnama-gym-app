@@ -1,0 +1,25 @@
+import { prisma } from "@/lib/prisma";
+import MembersClient from "./MembersClient";
+
+type PageProps = {
+  params: Promise<{ [key: string]: string | string[] | undefined }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function MembersPage(props: PageProps) {
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+
+  const formattedUsers = users.map(user => ({
+    id: user.id,
+    name: user.name || "Member",
+    email: user.email,
+    role: user.role,
+    activeUntil: user.endDate ? user.endDate.toISOString() : null,
+    joinDate: user.createdAt.toISOString(),
+    status: (user.endDate && user.endDate >= new Date()) ? "Aktif" : "Nonaktif",
+  }));
+
+  return <MembersClient initialMembers={formattedUsers} />;
+}

@@ -1,0 +1,45 @@
+# Product Requirement Document (PRD) - Purnama Gym Sumedang
+**Versi:** 3.8  
+**Status:** Phase 3.8 - UI Theme Revamp & Dashboard Reorganization  
+**Target Pasar:** Khusus Wanita (Sumedang)  
+**Teknologi:** Next.js 15+, Tailwind CSS.
+
+---
+
+## 1. Objektif Utama
+Mengubah skema warna antarmuka (Header & Background) menjadi tema hijau gradasi muda yang elegan dan modern, serta memindahkan fitur "Riwayat Transaksi" dan "Notifikasi" dari halaman Profil ke halaman utama (Beranda/Dashboard) untuk meningkatkan *User Experience* (UX).
+
+---
+
+## 2. Revamp Tema Warna (Header & Background)
+Tugas Agen: Terapkan perubahan kelas *Tailwind CSS* pada tata letak utama (Layout) atau masing-masing halaman member (`Beranda`, `Jadwal`, `Panduan`, `Profil`).
+
+**A. Bagian Header (Atas):**
+- Ubah latar belakang *Header* agar menggunakan gradasi hijau modern. 
+- Rekomendasi Tailwind: `bg-gradient-to-r from-emerald-400 to-teal-400` atau `from-teal-500 to-emerald-500`. Pastikan teks judul "Purnama Gym" dan ikon menggunakan warna putih (`text-white`) agar kontras dan terbaca jelas.
+
+**B. Bagian Latar Belakang Konten Utama (Background Bawah):**
+- Hapus warna latar belakang putih polos atau abu-abu standar (`bg-white` atau `bg-slate-50`).
+- Ganti dengan gradasi hijau yang sangat lembut agar tidak bertabrakan dengan desain Kartu Membership yang sudah ada (Pink/Hitam).
+- Rekomendasi Tailwind: `bg-gradient-to-br from-emerald-50 via-white to-teal-50` (Gradasi sangat tipis untuk kesan elegan/kaca).
+- Terapkan ke seluruh halaman member.
+
+---
+
+## 3. Reorganisasi Komponen (Dashboard UX)
+Tugas Agen: Memindahkan fitur agar Beranda menjadi pusat informasi utama.
+
+**A. Halaman Profil (`app/member/profile/page.tsx`):**
+- HAPUS komponen tombol/link "Riwayat Transaksi" dan "Notifikasi" dari menu Akun di halaman ini. Biarkan halaman profil hanya fokus pada informasi identitas pengguna dan tombol "Keluar (Log Out)".
+
+**B. Halaman Beranda (`app/member/dashboard/page.tsx`):**
+- PINDAHKAN komponen "Riwayat Transaksi" dan "Notifikasi" ke halaman ini.
+- **Penempatan Visual:** Letakkan komponen tersebut di bagian bawah layar (di bawah deretan tombol aksi "QR Masuk", "Booking Kelas", dll, dan di bawah tombol "Perpanjang Membership").
+- Rancang tampilannya agar terlihat seperti daftar kartu (Card List) atau daftar *feed* yang rapi. Misalnya, 3 riwayat transaksi/check-in terakhir, dan di bawahnya area notifikasi terbaru. 
+- Jika datanya diambil dari *database*, pastikan pemindahan ini tidak merusak fungsi *fetching* data.
+
+---
+
+## 4. Instruksi Eksekusi
+- **KONSISTENSI BAHASA:** WAJIB gunakan Bahasa Indonesia untuk seluruh teks UI, variabel UI, dan balasan Anda.
+- Pastikan perubahan warna ini terlihat selaras dan tidak merusak responsivitas tampilan *mobile* yang sudah diperbaiki sebelumnya. Eksekusi sekarang!

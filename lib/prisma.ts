@@ -5,7 +5,13 @@ import { PrismaClient } from '@prisma/client'
 
 const connectionString = process.env.DATABASE_URL
 
-const pool = new Pool({ connectionString })
+const pool = new Pool({
+  connectionString,
+  // Required for Neon DB with pg on local environments
+  ssl: {
+    rejectUnauthorized: false
+  }
+})
 const adapter = new PrismaPg(pool)
 
 const globalForPrisma = globalThis as unknown as {
@@ -13,7 +19,7 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // Tambahin log error biar ketahuan kalau client-nya gagal buat
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({ 
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   adapter,
   log: ['query', 'error', 'warn'] // Tambah ini buat debug
 })
