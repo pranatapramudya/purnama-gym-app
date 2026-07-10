@@ -3,11 +3,20 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
+import { headers } from "next/headers";
+
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const headerList = await headers();
+  const pathname = headerList.get("x-pathname") || "";
+  
+  if (pathname.includes("/admin/sign-in")) {
+    return <>{children}</>;
+  }
+
   // Proteksi rute: pastikan user sudah login dari Clerk
   const { userId } = await auth();
 

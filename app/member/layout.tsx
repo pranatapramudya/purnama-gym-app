@@ -11,19 +11,28 @@ export default async function MemberLayout({
   const clerkUser = await currentUser();
   
   if (clerkUser) {
-    const dbUser = await prisma.user.findUnique({
-      where: { clerkUserId: clerkUser.id },
+    const userEmail = clerkUser.emailAddresses[0]?.emailAddress || `no-email-${clerkUser.id}@gym.com`;
+    const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'Member Purnama';
+
+    const dbUser = await prisma.user.upsert({
+      where: { 
+        email: userEmail 
+      },
+      update: {
+        clerkUserId: clerkUser.id,
+        name: fullName
+      },
+      create: {
+        clerkUserId: clerkUser.id,
+        email: userEmail,
+        name: fullName,
+        role: "MEMBER_REGULAR"
+      }
     });
 
-    if (!dbUser) {
-      await prisma.user.create({
-        data: {
-          clerkUserId: clerkUser.id,
-          email: clerkUser.emailAddresses[0]?.emailAddress || `no-email-${clerkUser.id}@gym.com`,
-          name: clerkUser.firstName ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim() : "Member",
-          role: "MEMBER_REGULAR", // Menyesuaikan dengan schema yang ada (bukan MEMBER)
-        },
-      });
+    if (!dbUser?.phoneNumber || !dbUser?.address) {
+      const { redirect } = await import("next/navigation");
+      redirect("/onboarding");
     }
   }
 

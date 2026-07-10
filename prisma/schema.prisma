@@ -23,6 +23,8 @@ model User {
   clerkUserId String    @unique
   email       String    @unique
   name        String?
+  phoneNumber String?
+  address     String?
   role        Role      @default(MEMBER_REGULAR)
   endDate     DateTime? // Kapan membership berakhir
   createdAt   DateTime  @default(now())

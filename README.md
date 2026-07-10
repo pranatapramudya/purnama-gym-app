@@ -59,6 +59,20 @@ npm run dev
 - `/lib` - Core configurations (Prisma Client, dll.)
 - `/prisma` - Database schema and configurations
 
+## 🌟 Recent Updates (Phase 3)
+*Pembaruan arsitektur dan optimasi fitur terbaru untuk skala Enterprise:*
+1. **Autentikasi & Routing:** Perbaikan *redirect* pasca-login (langsung menuju Dashboard) dan implementasi *Hidden Trigger* (pintu masuk tersembunyi via Footer) untuk akses Login Admin (*Split-Screen*).
+2. **Arsitektur Layout:** Pemisahan total *Nested Layout* (B2B SaaS Sidebar) antara area Member dan Admin.
+3. **Optimasi Performa Frontend:** Transisi global dari tag HTML `<a>` menuju komponen `next/link` untuk navigasi bebas *reload* super cepat, dilengkapi dengan *Skeleton Loading* (`loading.tsx`).
+4. **UI/UX Responsif (Admin):** Pola adaptif "Table-to-Card" untuk seluruh tabel data agar ramah seluler (*mobile-friendly*) tanpa *horizontal scroll* yang mengganggu.
+5. **Database & Bypass Clerk Pro:** Penambahan kolom profil spesifik (`phoneNumber` & `address`) dengan alur *Custom Onboarding Flow* adaptif, menghilangkan ketergantungan pada fitur berbayar Clerk.
+6. **Robust Data Sync (Upsert):** Imunisasi terhadap error `Unique constraint failed` melalui sinkronisasi database (Prisma) berbasis `upsert` dan injeksi Nama lengkap secara otomatis.
+7. **Dynamic UI & Business Logic:**
+   - E-Card QR Code dinamis berbasis "Black Card" eksklusif untuk keanggotaan VIP.
+   - Proteksi *Anti-Looping* pintar (disabling button otomatis) untuk menghindari transaksi berulang saat status VIP masih aktif.
+   - *Conditional rendering* super rapi di UI Beranda (menyembunyikan atribut kedaluwarsa untuk Non-Member).
+   - Mode aman "Edit/Read-Only" interaktif pada formulir Profil pengguna.
+
 ## 🛡 License
 Premium License - Personal and Commercial use for your own SaaS products.
 

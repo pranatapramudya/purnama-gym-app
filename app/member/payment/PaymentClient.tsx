@@ -2,7 +2,7 @@
 
 import { Wallet, CreditCard, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, startTransition } from "react";
 import { createTransaction } from "@/app/actions/member";
 import { useRouter } from "next/navigation";
 
@@ -25,7 +25,9 @@ export default function PaymentClient({ initialData }: { initialData: PaymentDat
 
     if (res.success) {
       alert("Transaksi berhasil! Menunggu verifikasi admin.");
-      router.push("/member/dashboard");
+      startTransition(() => {
+        router.push("/member/dashboard");
+      });
     } else {
       alert(res.error || "Gagal memproses transaksi");
     }

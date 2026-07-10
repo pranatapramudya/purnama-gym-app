@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Users, TrendingUp, CalendarDays, Activity, Download, Calendar, ChevronDown, RefreshCw } from "lucide-react";
 import {
   AreaChart,
@@ -170,13 +171,13 @@ export default function DashboardClient({
             </button>
           </div>
           
-          <a
+          <Link
             href="/api/export"
             className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
           >
             <Download className="w-4 h-4" />
             Unduh Laporan (CSV)
-          </a>
+          </Link>
         </div>
       </div>
 

@@ -123,3 +123,22 @@ export async function createTransaction(type: string, amount: number, method: st
     return { success: false, error: error.message };
   }
 }
+
+export async function updateProfile(data: { phoneNumber?: string; address?: string }) {
+  const user = await verifyMember();
+
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        phoneNumber: data.phoneNumber,
+        address: data.address,
+      }
+    });
+
+    revalidatePath("/member/profile");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

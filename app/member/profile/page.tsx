@@ -1,6 +1,7 @@
 import { User, Settings, CreditCard, History, ChevronRight, LogOut, Bell } from "lucide-react";
 import { SignOutButton } from "@clerk/nextjs";
 import Link from "next/link";
+import ProfileFormClient from "./ProfileFormClient";
 
 import { prisma } from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
@@ -43,8 +44,9 @@ export default async function ProfilePage() {
         </div>
       </div>
 
+      <ProfileFormClient initialPhoneNumber={user?.phoneNumber || ""} initialAddress={user?.address || ""} />
 
-      <div className="space-y-2">
+      <div className="space-y-2 mt-6">
         <h3 className="font-bold text-slate-900 mb-3 px-1">Menu Akun</h3>
         
 

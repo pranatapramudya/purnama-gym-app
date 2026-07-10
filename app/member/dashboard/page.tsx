@@ -25,8 +25,9 @@ export default async function MemberDashboard() {
   }
 
   const role = dbUser?.role || "MEMBER_REGULAR";
-  const membershipType = role === "MEMBER_VIP" ? "VIP Member" : "Regular Member";
   const activeUntilDate = dbUser?.endDate || new Date(0);
+  const isVipActive = role === "MEMBER_VIP" && activeUntilDate > new Date();
+  const membershipType = isVipActive ? "VIP Member" : "Non-Member";
 
   return (
     <div className="w-full min-h-full flex flex-col justify-start font-sans bg-transparent">
@@ -78,10 +79,26 @@ export default async function MemberDashboard() {
               <div className="font-semibold text-slate-900 text-[11px]">Booking PT</div>
             </Link>
 
-            <Link href="/member/packages" className="bg-white aspect-[2/1] rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-center group">
-              <Image src="/icons/vip.png" alt="VIP Membership" width={28} height={28} className="object-contain mx-auto mb-0.5 w-7 h-7 group-hover:scale-110 transition-transform" />
-              <div className="font-semibold text-slate-900 text-[11px]">VIP Membership</div>
-            </Link>
+            {isVipActive ? (
+              <div 
+                className="aspect-[2/1] rounded-xl border border-gray-300 shadow-sm flex flex-col items-center justify-center gap-1 text-center bg-gray-300 text-gray-500 cursor-not-allowed opacity-70"
+              >
+                <Image src="/icons/vip.png" alt="VIP Aktif" width={28} height={28} className="object-contain mx-auto mb-0.5 w-7 h-7 opacity-50 grayscale" />
+                <div className="font-semibold text-[11px] text-gray-500">
+                  VIP Aktif
+                </div>
+              </div>
+            ) : (
+              <Link 
+                href="/member/packages" 
+                className="bg-white aspect-[2/1] rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-center group"
+              >
+                <Image src="/icons/vip.png" alt="VIP Membership" width={28} height={28} className="object-contain mx-auto mb-0.5 w-7 h-7 group-hover:scale-110 transition-transform" />
+                <div className="font-semibold text-[11px] text-slate-900">
+                  VIP Membership
+                </div>
+              </Link>
+            )}
 
             <Link href="/member/payment?type=daily" className="bg-white aspect-[2/1] rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-center group">
               <div className="w-7 h-7 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform mb-0.5">
@@ -93,9 +110,20 @@ export default async function MemberDashboard() {
 
           {/* Tombol Perpanjang Membership */}
           <section>
-            <Link href="/member/packages" className="flex items-center justify-center w-full bg-slate-900 text-white py-2 rounded-xl font-bold text-sm shadow-md hover:bg-slate-800 transition-colors">
-              Perpanjang Membership
-            </Link>
+            {isVipActive ? (
+              <div 
+                className="flex items-center justify-center w-full py-2 rounded-xl font-bold text-sm shadow-md transition-colors bg-gray-300 text-gray-500 cursor-not-allowed opacity-70"
+              >
+                VIP Aktif
+              </div>
+            ) : (
+              <Link 
+                href="/member/packages" 
+                className="flex items-center justify-center w-full py-2 rounded-xl font-bold text-sm shadow-md transition-colors bg-slate-900 text-white hover:bg-slate-800"
+              >
+                Perpanjang Membership
+              </Link>
+            )}
           </section>
 
           {/* Aktivitas & Notifikasi (Dipindahkan dari Profil) */}

@@ -117,10 +117,10 @@ export async function verifyTransaction(transactionId: string) {
 
     if (transaction.type === "BULANAN_REGULAR") {
       role = "MEMBER_REGULAR";
-      endDate.setDate(endDate.getDate() + 30);
+      endDate.setMonth(endDate.getMonth() + 1);
     } else if (transaction.type === "BULANAN_VIP") {
       role = "MEMBER_VIP";
-      endDate.setDate(endDate.getDate() + 30);
+      endDate = new Date(new Date().setMonth(new Date().getMonth() + 1));
     } else if (transaction.type === "HARIAN") {
       role = "MEMBER_REGULAR";
       endDate.setDate(endDate.getDate() + 1);

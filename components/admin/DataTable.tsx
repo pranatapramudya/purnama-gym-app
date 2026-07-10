@@ -36,7 +36,8 @@ export function DataTable<T extends Record<string, any>>({
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-      <div className="overflow-x-auto">
+      {/* DESKTOP VIEW */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-100">
           <thead>
             <tr className="bg-slate-50/80">
@@ -71,6 +72,32 @@ export function DataTable<T extends Record<string, any>>({
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* MOBILE CARD VIEW */}
+      <div className="md:hidden flex flex-col p-4 gap-4 bg-slate-50/50">
+        {data.map((item, idx) => (
+          <div key={idx} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col gap-3">
+            {columns.map((col) => {
+              const isAction = col.key.toLowerCase().includes("action");
+              if (isAction) {
+                return (
+                  <div key={col.key} className="mt-2 pt-3 border-t border-slate-100 flex justify-end w-full">
+                    {col.render ? col.render(item) : String(item[col.key] ?? "")}
+                  </div>
+                );
+              }
+              return (
+                <div key={col.key} className="flex justify-between items-start gap-4">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[90px] mt-0.5">{col.label}</span>
+                  <div className="text-sm text-slate-800 text-right">
+                    {col.render ? col.render(item) : String(item[col.key] ?? "")}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );

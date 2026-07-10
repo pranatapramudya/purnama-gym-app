@@ -61,7 +61,7 @@ export default function Home() {
       {/* --- FOOTER --- */}
       <footer className="py-8 border-t border-slate-200 text-center bg-slate-50">
         <p className="text-slate-500 text-sm font-medium">
-          © <Link href="/admin/dashboard" className="cursor-pointer hover:opacity-80 transition-opacity">{new Date().getFullYear()}</Link> Purnama Gym Sumedang. <br className="md:hidden" />
+          © <Link href="/admin/sign-in" className="cursor-pointer hover:opacity-80 transition-opacity">{new Date().getFullYear()}</Link> Purnama Gym Sumedang. <br className="md:hidden" />
           Hak cipta dilindungi.
         </p>
       </footer>
