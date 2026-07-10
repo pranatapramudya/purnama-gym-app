@@ -287,7 +287,10 @@ export default function DashboardClient({
                   width={80}
                 />
                 <Tooltip 
-                  formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Pendapatan']}
+                  formatter={(value: any) => {
+                    const numericValue = Number(value) || 0;
+                    return [`Rp ${numericValue.toLocaleString('id-ID')}`, 'Pendapatan'];
+                  }}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
                   labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
                 />
