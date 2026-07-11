@@ -64,6 +64,7 @@ export async function POST(req: Request) {
   // 1. CREATE (user.created)
   if (eventType === 'user.created') {
     try {
+      const shortId = `PRN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       // Sinkronisasi insert user baru ke Database PostgreSQL (Prisma)
       await db.user.create({
         data: {
@@ -71,9 +72,10 @@ export async function POST(req: Request) {
           email: email,
           name: fullName,
           role: 'MEMBER_REGULAR', // Role default 
+          shortId: shortId,
         },
       });
-      console.log(`✅ [${eventType}] Sync Success: User ${id} ditambahkan ke DB.`);
+      console.log(`✅ [${eventType}] Sync Success: User ${id} ditambahkan ke DB dengan shortId ${shortId}.`);
       return new Response('Sync Success', { status: 200 });
     } catch (dbError) {
       console.error('❌ Database Ops Error:', dbError);

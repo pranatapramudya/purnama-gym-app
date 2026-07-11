@@ -142,3 +142,43 @@ export async function updateProfile(data: { phoneNumber?: string; address?: stri
     return { success: false, error: error.message };
   }
 }
+
+export async function bookPTSession(slotId: string, scheduleIso: string, method: string = "TUNAI") {
+  const user = await verifyMember();
+  
+  try {
+    const slot = await prisma.pTScheduleSlot.findUnique({ where: { id: slotId } });
+    if (!slot) throw new Error("Slot tidak ditemukan.");
+
+    const ptSetting = await prisma.pTSetting.findFirst();
+    const price = ptSetting?.pricePerSession || 100000;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.pTSession.create({
+        data: {
+          memberId: user.id,
+          trainerId: slot.trainerId,
+          trainerName: slot.trainerName,
+          schedule: new Date(scheduleIso),
+          status: "PENDING",
+        }
+      });
+
+      await tx.transaction.create({
+        data: {
+          userId: user.id,
+          type: "PT_SESSION",
+          amount: price,
+          status: "PENDING",
+          method: method
+        }
+      });
+    });
+
+    revalidatePath("/member/booking");
+    revalidatePath("/member/schedule");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

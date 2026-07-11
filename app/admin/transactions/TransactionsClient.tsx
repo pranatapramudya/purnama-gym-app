@@ -4,7 +4,7 @@ import { useState } from "react";
 import { DataTable } from "@/components/admin/DataTable";
 import { AdminToast, ToastType } from "@/components/admin/AdminToast";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
-import { CheckCircle2, Clock, XCircle, Filter, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, Filter } from "lucide-react";
 import { verifyTransaction } from "@/app/actions/admin";
 
 interface TransactionItem {
@@ -31,7 +31,11 @@ const typeLabels: Record<string, string> = {
   PAKET_ZUMBA: "Paket Zumba",
 };
 
-export default function TransactionsClient({ initialTransactions }: { initialTransactions: TransactionItem[] }) {
+export default function TransactionsClient({ 
+  initialTransactions
+}: { 
+  initialTransactions: TransactionItem[]
+}) {
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" as ToastType });
   const [verifyTarget, setVerifyTarget] = useState<TransactionItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<"ALL" | "PENDING" | "SUCCESS" | "FAILED">("ALL");
@@ -211,6 +215,8 @@ export default function TransactionsClient({ initialTransactions }: { initialTra
 
       {/* Data Table */}
       <DataTable columns={columns} data={filteredTransactions} emptyMessage="Tidak ada transaksi" emptyDescription="Belum ada transaksi yang cocok dengan filter ini." />
+
+
     </div>
   );
 }

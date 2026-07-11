@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import DashboardClient from "./_components/DashboardClient";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -7,6 +9,22 @@ type PageProps = {
 };
 
 export default async function AdminDashboard(props: PageProps) {
+  const { userId } = await auth();
+  
+  if (!userId) {
+    redirect("/");
+  }
+
+  const currentUser = await prisma.user.findUnique({
+    where: { clerkUserId: userId }
+  });
+
+  const userRole = currentUser?.role || "MEMBER";
+
+  if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
+    redirect("/");
+  }
+
   const now = new Date();
   
   // Start of Today
@@ -20,27 +38,47 @@ export default async function AdminDashboard(props: PageProps) {
   // Start of Month
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // Start of Last Month
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
   // Start of Year
   const startOfYear = new Date(now.getFullYear(), 0, 1);
+  
+  // Earliest date needed for transactions
+  const minStart = startOfYear < startOfLastMonth ? startOfYear : startOfLastMonth;
   
   // End bound is just tomorrow to capture everything up to end of today safely
   const tomorrow = new Date(startOfToday);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  // 1. Total Member
-  const totalMember = await prisma.user.count({
-    where: { role: { not: "ADMIN" } },
+  // 1. Active & Non-Member Segments
+  const activeMembers = await prisma.user.count({
+    where: {
+      role: { in: ["MEMBER_REGULAR", "MEMBER_VIP"] },
+      endDate: { gt: now }
+    },
   });
 
-  // 2. Fetch all transactions for this year to calculate aggregations in JS
-  const yearTransactions = await prisma.transaction.findMany({
-    where: { status: "SUCCESS", createdAt: { gte: startOfYear, lt: tomorrow } },
+  const nonMembers = await prisma.user.count({
+    where: {
+      role: { in: ["MEMBER_REGULAR", "MEMBER_VIP"] },
+      OR: [
+        { endDate: null },
+        { endDate: { lte: now } }
+      ]
+    }
+  });
+
+  // 2. Fetch all required transactions for aggregations in JS
+  const allTransactions = await prisma.transaction.findMany({
+    where: { status: "SUCCESS", createdAt: { gte: minStart, lt: tomorrow } },
     select: { amount: true, createdAt: true },
   });
 
   let revToday = 0;
   let revWeek = 0;
   let revMonth = 0;
+  let revLastMonth = 0;
   let revYear = 0;
 
   const chartDataYear = Array.from({length: 12}, (_, i) => ({
@@ -54,6 +92,12 @@ export default async function AdminDashboard(props: PageProps) {
     amount: 0
   }));
 
+  const daysInLastMonth = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+  const chartDataLastMonth = Array.from({length: daysInLastMonth}, (_, i) => ({
+    name: (i + 1).toString(),
+    amount: 0
+  }));
+
   const weekDays = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
   const chartDataWeek = weekDays.map(day => ({ name: day, amount: 0 }));
 
@@ -63,17 +107,25 @@ export default async function AdminDashboard(props: PageProps) {
     amount: 0
   }));
 
-  yearTransactions.forEach(tx => {
+  allTransactions.forEach(tx => {
     const d = new Date(tx.createdAt);
     
     // Year
-    revYear += tx.amount;
-    chartDataYear[d.getMonth()].amount += tx.amount;
+    if (d >= startOfYear) {
+      revYear += tx.amount;
+      chartDataYear[d.getMonth()].amount += tx.amount;
+    }
 
     // Month
     if (d >= startOfMonth) {
       revMonth += tx.amount;
       chartDataMonth[d.getDate() - 1].amount += tx.amount;
+    }
+
+    // Last Month
+    if (d >= startOfLastMonth && d < startOfMonth) {
+      revLastMonth += tx.amount;
+      chartDataLastMonth[d.getDate() - 1].amount += tx.amount;
     }
 
     // Week
@@ -98,6 +150,7 @@ export default async function AdminDashboard(props: PageProps) {
     today: revToday,
     week: revWeek,
     month: revMonth,
+    last_month: revLastMonth,
     year: revYear,
   };
 
@@ -105,20 +158,36 @@ export default async function AdminDashboard(props: PageProps) {
     today: filteredChartDataToday,
     week: chartDataWeek,
     month: chartDataMonth,
+    last_month: chartDataLastMonth,
     year: chartDataYear,
   };
 
-  // 3. Sesi PT Hari Ini
+  const resolvedSearchParams = await props.searchParams;
+  const filter = (resolvedSearchParams?.filter as string) || "today";
+
+  // Determine dynamic start and end dates based on filter
+  let dynamicStartDate = startOfToday;
+  let dynamicEndDate = tomorrow;
+  
+  if (filter === "week") dynamicStartDate = startOfWeek;
+  else if (filter === "month") dynamicStartDate = startOfMonth;
+  else if (filter === "last_month") {
+    dynamicStartDate = startOfLastMonth;
+    dynamicEndDate = startOfMonth;
+  }
+  else if (filter === "year") dynamicStartDate = startOfYear;
+  
+  // 3. Sesi PT (Dinamis)
   const classesToday = await prisma.gymClass.count({
     where: {
-      schedule: { gte: startOfToday, lt: tomorrow },
+      schedule: { gte: dynamicStartDate, lt: dynamicEndDate },
     },
   });
 
-  // 4. Check-in Hari Ini
+  // 4. Check-in (Dinamis)
   const checkinsToday = await prisma.checkIn.count({
     where: {
-      timestamp: { gte: startOfToday, lt: tomorrow },
+      timestamp: { gte: dynamicStartDate, lt: dynamicEndDate },
     },
   });
 
@@ -135,13 +204,16 @@ export default async function AdminDashboard(props: PageProps) {
   }));
 
   return (
-    <DashboardClient
-      totalMember={totalMember}
+    <DashboardClient 
+      userRole={typeof userRole === 'string' ? userRole.toLowerCase() : 'member'}
+      activeMembers={activeMembers}
+      nonMembers={nonMembers}
       classesToday={classesToday}
       checkinsToday={checkinsToday}
       revenue={revenue}
       charts={charts}
       recentCheckins={recentCheckins}
+      activeFilter={filter}
     />
   );
 }

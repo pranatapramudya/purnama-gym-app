@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AdminToast, ToastType } from "@/components/admin/AdminToast";
-import { Camera, CheckCircle2, Clock, Scan, Loader2 } from "lucide-react";
+import { Camera, CheckCircle2, Clock, Scan, Loader2, XCircle } from "lucide-react";
 import { processQRCheckIn } from "@/app/actions/admin";
+import { Html5Qrcode } from "html5-qrcode";
 
 interface ScanResult {
   name: string;
   email: string;
   role: string;
+  shortId?: string;
   time: string;
-  status: "success" | "already" | "expired";
+  status: "success" | "already" | "expired" | "checkout";
+  hasPTSession?: boolean;
 }
 
 export default function ScannerClient({ initialHistory }: { initialHistory: ScanResult[] }) {
@@ -19,26 +22,103 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
   const [isScanning, setIsScanning] = useState(false);
   const [scanHistory, setScanHistory] = useState<ScanResult[]>(initialHistory);
   const [userIdInput, setUserIdInput] = useState("");
+  const [expiredUserId, setExpiredUserId] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState("");
+  
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isProcessingRef = useRef(false);
 
   const showToast = (message: string, type: ToastType = "success") => {
     setToast({ visible: true, message, type });
   };
 
-  const handleScanSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userIdInput.trim()) return;
+  useEffect(() => {
+    const html5QrCode = new Html5Qrcode("qr-reader");
+    scannerRef.current = html5QrCode;
 
+    html5QrCode.start(
+      { facingMode: { exact: "environment" } },
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+      },
+      (decodedText) => {
+        if (!isProcessingRef.current) {
+          handleScanText(decodedText);
+        }
+      },
+      (errorMessage) => {
+        // parse error, ignore
+      }
+    ).catch((err) => {
+      // Fallback to any camera if environment camera fails (e.g. PC without back camera)
+      html5QrCode.start(
+        { facingMode: "user" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          if (!isProcessingRef.current) {
+            handleScanText(decodedText);
+          }
+        },
+        (errorMessage) => {}
+      ).catch((err2) => {
+        setCameraError("Harap izinkan akses kamera pada browser Anda.");
+        console.error("Camera access failed", err2);
+      });
+    });
+
+    return () => {
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        scannerRef.current.stop().then(() => scannerRef.current?.clear()).catch(console.error);
+      }
+    };
+  }, []);
+
+  const handleScanText = async (text: string) => {
+    const cleanText = text.trim();
+    if (!cleanText) return;
+
+    isProcessingRef.current = true;
     setIsScanning(true);
-    const res = await processQRCheckIn(userIdInput.trim());
+    setUserIdInput(cleanText);
+
+    const res = await processQRCheckIn(cleanText);
     setIsScanning(false);
 
     if (res.success && res.data) {
-      setLastScan(res.data as ScanResult);
-      setScanHistory(prev => [res.data as ScanResult, ...prev]);
-      showToast(`Check-in berhasil: ${res.data.name}`, "success");
-      setUserIdInput(""); // Reset form
+      const data = res.data as ScanResult;
+      setLastScan(data);
+      setScanHistory(prev => [data, ...prev]);
+      setUserIdInput(""); 
+      setExpiredUserId(null);
+
+      if (data.status === "checkout") {
+        showToast(`Check-out berhasil: ${data.name}`, "success");
+      } else {
+        showToast(`Check-in berhasil: ${data.name}`, "success");
+        if (data.hasPTSession) {
+          setTimeout(() => showToast(`Pemberitahuan: ${data.name} memiliki sesi PT hari ini!`, "success"), 500);
+        }
+      }
     } else {
-      showToast(res.error || "Gagal check-in", "error");
+      if (res.error === "KADALUARSA") {
+        setExpiredUserId(cleanText);
+        setLastScan(null);
+      } else {
+        showToast(res.error || "Gagal check-in", "error");
+      }
+    }
+
+    // Delay before allowing next scan to prevent duplicate hits
+    setTimeout(() => {
+      isProcessingRef.current = false;
+    }, 2500);
+  };
+
+  const handleScanSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isProcessingRef.current) {
+      handleScanText(userIdInput);
     }
   };
 
@@ -61,41 +141,28 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
         {/* Camera Area */}
         <div className="xl:col-span-3 space-y-4">
           <div className="bg-slate-900 rounded-2xl aspect-[4/3] relative overflow-hidden shadow-xl">
-            {/* Camera placeholder */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              {isScanning ? (
-                <>
-                  {/* Scanning animation */}
-                  <div className="relative w-48 h-48">
-                    <div className="absolute inset-0 border-2 border-white/20 rounded-2xl" />
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-rose-400 rounded-tl-xl" />
-                    <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-rose-400 rounded-tr-xl" />
-                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-rose-400 rounded-bl-xl" />
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-rose-400 rounded-br-xl" />
-                    {/* Scanning line */}
-                    <div className="absolute left-2 right-2 h-0.5 bg-gradient-to-r from-transparent via-rose-400 to-transparent animate-[scanLine_2s_ease-in-out_infinite]" />
-                    <style>{`
-                      @keyframes scanLine {
-                        0%, 100% { top: 10%; }
-                        50% { top: 85%; }
-                      }
-                    `}</style>
-                  </div>
-                  <p className="text-white/60 text-sm font-medium mt-4 animate-pulse">Memindai QR Code...</p>
-                </>
-              ) : (
-                <>
-                  <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center mb-4">
-                    <Camera className="w-10 h-10 text-white/40" />
-                  </div>
-                  <p className="text-white/50 text-sm font-medium">Kamera belum aktif</p>
-                  <p className="text-white/30 text-xs mt-1">Klik tombol di bawah untuk mulai scan</p>
-                </>
-              )}
-            </div>
-
+            {cameraError ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
+                  <XCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <p className="text-white font-bold text-sm">{cameraError}</p>
+                <p className="text-white/60 text-xs mt-2">Beri izin akses kamera pada pengaturan browser untuk melanjutkan.</p>
+              </div>
+            ) : (
+              <div id="qr-reader" className="w-full h-full [&>video]:w-full [&>video]:h-full [&>video]:object-cover" />
+            )}
+            
             {/* Overlay gradient */}
-            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-900/80 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-slate-900/80 to-transparent pointer-events-none" />
+            
+            {/* Scanning indication overlay */}
+            {isScanning && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10">
+                <Loader2 className="w-12 h-12 text-rose-500 animate-spin mb-4" />
+                <p className="text-white font-bold animate-pulse">Memproses Check-In...</p>
+              </div>
+            )}
           </div>
 
           {/* Scan Input Form */}
@@ -118,6 +185,27 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
             </button>
           </form>
 
+          {/* Expired Alert */}
+          {expiredUserId && (
+            <div className="bg-red-50 rounded-2xl border border-red-200 p-5 shadow-sm animate-[fadeUp_0.3s_ease-out]">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                  <h3 className="text-sm font-bold text-red-700">Masa Aktif Kadaluarsa!</h3>
+                </div>
+                <p className="text-xs text-red-600 font-medium">Member ini tidak dapat check-in karena masa aktifnya sudah habis. Silakan lakukan perpanjangan langganan terlebih dahulu.</p>
+                <div className="pt-2">
+                  <a 
+                    href={`/admin/transactions?userId=${expiredUserId}`}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white font-bold text-xs rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                  >
+                    Lakukan Perpanjangan
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Last Scan Result */}
           {lastScan && (
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm animate-[fadeUp_0.3s_ease-out]">
@@ -129,7 +217,9 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
               `}</style>
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                <h3 className="text-sm font-bold text-emerald-700">Check-in Berhasil!</h3>
+                <h3 className="text-sm font-bold text-emerald-700">
+                  {lastScan.status === "checkout" ? "Check-out Berhasil!" : "Check-in Berhasil!"}
+                </h3>
               </div>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold shadow-sm">
@@ -137,7 +227,14 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-slate-900">{lastScan.name}</p>
-                  <p className="text-xs text-slate-500">{lastScan.email}</p>
+                  <p className="text-[11px] font-mono font-bold text-slate-600 tracking-wider my-0.5">
+                    {lastScan.shortId || "ID NOT SET"}
+                  </p>
+                  {lastScan.hasPTSession && (
+                    <p className="text-[10px] font-bold text-emerald-600 mt-1 bg-emerald-50 px-2 py-0.5 rounded-full inline-block">
+                      📋 Ada Sesi PT Hari Ini
+                    </p>
+                  )}
                 </div>
                 <div className="text-right">
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${

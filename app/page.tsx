@@ -1,8 +1,27 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { auth } from "@clerk/nextjs/server";
+import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+export default async function Home() {
+  const { userId } = await auth();
+
+  if (userId) {
+    const dbUser = await prisma.user.findUnique({
+      where: { clerkUserId: userId },
+      select: { role: true },
+    });
+
+    if (dbUser) {
+      if (dbUser.role === "ADMIN" || dbUser.role === "SUPERADMIN") {
+        redirect("/admin/dashboard");
+      } else {
+        redirect("/member/dashboard");
+      }
+    }
+  }
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-emerald-500/30 font-sans flex flex-col">
       {/* --- NAVBAR --- */}
@@ -16,7 +35,7 @@ export default function Home() {
         
         <div className="flex items-center gap-3 md:gap-4">
           <Link href="/sign-in" className="text-xs md:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors whitespace-nowrap cursor-pointer">
-            Sign In
+            Masuk
           </Link>
           <Link href="/sign-up">
             <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-full px-4 md:px-5 font-bold transition-all text-xs md:text-sm shadow-sm border-0 cursor-pointer">
@@ -47,15 +66,7 @@ export default function Home() {
           Tingkatkan kesehatan dan kepercayaan diri Anda di lingkungan yang aman, nyaman, dan sepenuhnya dirancang khusus untuk privasi wanita.
         </p>
 
-        {/* --- CTA BUTTONS --- */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center min-h-[60px]">
-          <Link href="/sign-in">
-            <Button size="lg" className="h-14 px-10 bg-emerald-600 text-white hover:bg-emerald-700 font-bold text-lg rounded-full group transition-all active:scale-95 shadow-lg shadow-emerald-500/20 border-0 cursor-pointer">
-              Masuk / Daftar Sekarang
-              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </Link>
-        </div>
+
       </main>
 
       {/* --- FOOTER --- */}

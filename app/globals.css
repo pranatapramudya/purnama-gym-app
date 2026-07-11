@@ -137,5 +137,26 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-}
 
+  /* Clean UI Mobile: Remove default clear/cancel buttons on inputs */
+  input[type="search"]::-webkit-search-decoration,
+  input[type="search"]::-webkit-search-cancel-button,
+  input[type="search"]::-webkit-search-results-button,
+  input[type="search"]::-webkit-search-results-decoration,
+  input::-ms-clear,
+  input::-ms-reveal {
+    display: none;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  /* Clean UI: Remove spin buttons on number inputs */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+  }
+}

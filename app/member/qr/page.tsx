@@ -1,6 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
-import QRCode from "react-qr-code";
+import { QRRenderer } from "./qr-renderer";
 import Link from "next/link";
 import { ScanLine } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -15,8 +15,8 @@ export default async function QRCodePage() {
 
   if (!user) return redirect("/sign-in");
 
-  const qrData = user.id;
-  const memberId = `PG-${user.id.substring(user.id.length - 4).toUpperCase()}`;
+  const qrData = user.shortId || user.id;
+  const memberId = user.shortId || `PG-${user.id.substring(user.id.length - 4).toUpperCase()}`;
   const isVip = user.role === "MEMBER_VIP" && user.endDate && user.endDate > new Date();
   const userName = user.name || "Member Purnama";
 
@@ -53,13 +53,8 @@ export default async function QRCodePage() {
               </span>
             </div>
 
-            <div className="max-w-[200px] mx-auto w-full aspect-square bg-white rounded-xl flex items-center justify-center">
-              <QRCode 
-                value={qrData} 
-                size={200}
-                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                viewBox={`0 0 256 256`}
-              />
+            <div className="max-w-[200px] mx-auto w-full aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden p-2">
+              <QRRenderer userId={qrData} />
             </div>
             
           </div>

@@ -32,8 +32,8 @@ DATABASE_URL="postgresql://user:password@host/neondb?sslmode=require"
 CLERK_WEBHOOK_SECRET=whsec_...
 ```
 
-### 3. Database Sync
-Format your schema, generate the Prisma client, and sync with your database:
+### 3. Database Sync (Wajib dilakukan setelah update skema)
+Sangat penting untuk menjalankan perintah berikut agar Prisma Client tersinkronisasi dengan skema `shortId` dan `maxCapacity` terbaru, serta memperbarui struktur tabel di database Anda:
 ```bash
 npx prisma format
 npx prisma generate
@@ -59,8 +59,9 @@ npm run dev
 - `/lib` - Core configurations (Prisma Client, dll.)
 - `/prisma` - Database schema and configurations
 
-## 🌟 Recent Updates (Phase 3)
+## 🌟 Recent Updates (Phase 3.95 - Final Sprint)
 *Pembaruan arsitektur dan optimasi fitur terbaru untuk skala Enterprise:*
+**User Roles yang Didukung:** Member, Admin, Super User, dan Trainer.
 1. **Autentikasi & Routing:** Perbaikan *redirect* pasca-login (langsung menuju Dashboard) dan implementasi *Hidden Trigger* (pintu masuk tersembunyi via Footer) untuk akses Login Admin (*Split-Screen*).
 2. **Arsitektur Layout:** Pemisahan total *Nested Layout* (B2B SaaS Sidebar) antara area Member dan Admin.
 3. **Optimasi Performa Frontend:** Transisi global dari tag HTML `<a>` menuju komponen `next/link` untuk navigasi bebas *reload* super cepat, dilengkapi dengan *Skeleton Loading* (`loading.tsx`).
@@ -72,6 +73,8 @@ npm run dev
    - Proteksi *Anti-Looping* pintar (disabling button otomatis) untuk menghindari transaksi berulang saat status VIP masih aktif.
    - *Conditional rendering* super rapi di UI Beranda (menyembunyikan atribut kedaluwarsa untuk Non-Member).
    - Mode aman "Edit/Read-Only" interaktif pada formulir Profil pengguna.
+8. **Modul Personal Trainer (O2O Lifecycle):** Sistem manajemen jadwal PT dengan siklus PENDING -> CONFIRMED -> ONGOING -> COMPLETED, didukung form *Point of Sale* (POS) untuk input pembayaran manual kasir.
+9. **Manajemen Ketersediaan & Slot PT:** Superadmin memiliki kendali atas Master Jadwal PT (Hari, Jam, Harga, & Assignment Trainer) yang secara cerdas mengubah UI ketersediaan di Frontend (*greyed out* jika bentrok/terisi).
 
 ## 🛡 License
 Premium License - Personal and Commercial use for your own SaaS products.

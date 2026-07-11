@@ -15,11 +15,17 @@ export default async function MembersPage(props: PageProps) {
     id: user.id,
     name: user.name || "Member",
     email: user.email,
+    phone: user.phoneNumber || "",
     role: user.role,
     activeUntil: user.endDate ? user.endDate.toISOString() : null,
     joinDate: user.createdAt.toISOString(),
     status: (user.endDate && user.endDate >= new Date()) ? "Aktif" : "Nonaktif",
   }));
 
-  return <MembersClient initialMembers={formattedUsers} />;
+  const packages = await prisma.membershipPackage.findMany({
+    orderBy: { price: "asc" },
+    select: { id: true, name: true, price: true, durationMonths: true }
+  });
+
+  return <MembersClient initialMembers={formattedUsers} packages={packages} />;
 }

@@ -1,6 +1,7 @@
 import { BottomNav } from "@/components/BottomNav";
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
+import { headers } from "next/headers";
 
 export default async function MemberLayout({
   children,
@@ -30,9 +31,17 @@ export default async function MemberLayout({
       }
     });
 
-    if (!dbUser?.phoneNumber || !dbUser?.address) {
+    if (dbUser.role === "ADMIN" || dbUser.role === "SUPERADMIN") {
       const { redirect } = await import("next/navigation");
-      redirect("/onboarding");
+      redirect("/admin/dashboard");
+    }
+
+    const headersList = await headers();
+    const pathname = headersList.get("x-pathname") || "";
+
+    if ((!dbUser?.phoneNumber || !dbUser?.address) && !pathname.includes("/onboarding")) {
+      const { redirect } = await import("next/navigation");
+      redirect("/member/onboarding");
     }
   }
 

@@ -15,13 +15,14 @@ Aplikasi dibangun menggunakan pondasi modern web development yang mengedepankan 
 
 ## 🗄️ 2. Arsitektur Database & Relasi (Prisma Schema)
 Sistem memiliki beberapa entitas/model utama untuk mendukung seluruh alur operasional gym:
-- **`User`:** Entitas utama. Menyimpan `clerkUserId` (untuk pemetaan IAM), `role` (hak akses), `phoneNumber`, `address`, dan `endDate` (masa aktif membership VIP/Reguler).
+- **`User`:** Entitas utama. Menyimpan `clerkUserId` (untuk pemetaan IAM), `shortId` (ID pendek unik untuk integrasi Universal QR Code), `role` (hak akses), `phoneNumber`, `address`, dan `endDate` (masa aktif membership VIP/Reguler).
 - **`GymClass`:** Menyimpan informasi jadwal kelas kebugaran (Zumba, Pilates, dll.) lengkap dengan tanggal pelaksanaan (`schedule`) dan kuota maksimal (`capacity`).
 - **`ClassBooking`:** Tabel pivot/relasi yang mencatat partisipasi pengguna (Member) ke dalam sebuah Kelas tertentu.
 - **`Transaction`:** Pencatatan riwayat pembayaran paket atau kunjungan harian (*Visit*) secara manual. Memiliki kolom `amount`, `status` (PENDING/SUCCESS).
 - **`MembershipPackage`:** *Master data* statis yang menyimpan daftar harga dan durasi langganan (VIP/Reguler).
 - **`GuideVideo`:** Tabel untuk manajemen video panduan olahraga (tautan YouTube).
-- **`CheckIn`:** Tabel rekam jejak historis kehadiran member yang dipicu melalui *Scan* QR Code.
+- **`CheckIn`:** Tabel rekam jejak historis kehadiran member yang dipicu melalui *Scan* QR Code (mencatat `checkOutTime` otomatis).
+- **`PTSession` & `PTScheduleSlot` & `PTSetting`:** Trio model yang mengatur alur bisnis Personal Trainer. Terintegrasi dengan fitur *Capacity Management*, model `PTScheduleSlot` kini mendukung atribut `maxCapacity` untuk membatasi kuota peserta.
 
 ---
 
@@ -31,7 +32,7 @@ Sistem autentikasi didesain untuk meminimalisasi *friction* sekaligus menjaga ke
 ### A. Alur Pendaftaran (Auth Flow)
 1. **Sign Up (Clerk):** Pengguna mendaftar instan menggunakan akun Google/Email melalui UI Clerk.
 2. **Global Redirect Interception:** Pasca-login, sistem *middleware* Next.js memblokir akses ke *Landing Page* dan memaksa navigasi langsung ke area `/member/dashboard`.
-3. **Custom Onboarding Flow (Bypass Clerk Pro):** Sistem *Nested Layout* (`app/member/layout.tsx`) akan mencegat pengguna baru jika data wajib (Nomor HP & Alamat) masih kosong. Pengguna akan dialihkan ke `/onboarding` untuk mengisi data secara mandiri ke *database* kita, menghemat biaya verifikasi OTP SMS bawaan *Auth Provider*.
+3. **Custom Onboarding Flow & Karyawan Bypass (Bypass Clerk Pro):** Sistem *Nested Layout* (`app/member/layout.tsx`) akan mencegat pengguna baru jika data wajib (Nomor HP & Alamat) masih kosong. Pengguna akan dialihkan ke `/onboarding` untuk mengisi data secara mandiri ke *database* kita. Di sisi lain, sistem menerapkan **logika *Bypass Verification*** bagi akun berstatus `ADMIN` atau `SUPERADMIN`, memungkinkan mereka *skip* onboarding dan langsung masuk ke Dasbor agar lebih efisien (Modul Karyawan Otomatis).
 
 ### B. Robust Data Sync (Sinkronisasi Database)
 - **Sinkronisasi Webhook vs Upsert Atomic:** Meskipun ada *Webhook* (`/api/webhooks/clerk`) untuk memantau pengguna baru secara asinkron, aplikasi ini juga menerapkan logika **`prisma.user.upsert`** yang reaktif di dalam *layout* utama.
@@ -39,29 +40,37 @@ Sistem autentikasi didesain untuk meminimalisasi *friction* sekaligus menjaga ke
 
 ---
 
-## 🏛️ 4. Akses Berbasis Peran & Pemisahan Layout (RBAC)
-Aplikasi secara arsitektural membelah diri menjadi dua ekosistem dengan UI/UX dan logika keamanan yang sangat berbeda berdasarkan nilai `role` pengguna.
+## 🏛️ 4. Sistem Multi-Tenant & Akses Berbasis Peran (RBAC)
+Aplikasi secara arsitektural membelah diri menjadi ekosistem *Multi-Tenant* dengan UI/UX dan logika keamanan yang sangat berbeda berdasarkan nilai `role` pengguna (Member, Admin, Super User, Trainer).
 
 ### Area Anggota (`/member/...`) untuk `MEMBER_REGULAR` & `MEMBER_VIP`
 - **Antarmuka:** Diselimuti oleh *Mobile-First Bottom Navigation Layout* bergaya *app-like* untuk mempermudah operasional via *smartphone*.
 - **Akses:** Memuat interaksi kasual seperti Dasbor, Profil Read-Only/Edit, *Booking* PT, dan QR E-Card dinamis (Kartu Emas "Black Card" eksklusif untuk VIP).
 - **Proteksi Anti-Looping:** Transaksi pembelian VIP dijaga ketat agar tombol pendaftaran mati (*disabled*) selama masa aktif VIP masih berlaku.
 
-### Dasbor Admin B2B (`/admin/...`) untuk `ADMIN`
+### Dasbor Admin B2B (`/admin/...`) untuk `ADMIN` & `SUPERADMIN`
 - **Antarmuka:** Diselimuti oleh *Desktop-First Sidebar Layout* kelas premium (SaaS UI). Pada perangkat *mobile*, tabel data raksasa diubah secara dinamis menjadi Kartu Informasi bertumpuk (*Table-to-Card adaptive pattern*) guna mencegah *horizontal scroll* yang merusak UX.
 - **Hidden Trigger Entrance:** Karena portal administrasi bersifat rahasia, akses Login Admin tidak diekspos secara publik. Admin harus menekan sebuah tuas tersembunyi (*Hidden Trigger*) di *Footer Landing Page* untuk memunculkan portal login khusus *Split-Screen*.
 - **Gatekeeper Middleware:** Upaya akses ke `/admin` akan divalidasi langsung ke *database*. Akun biasa akan segera ditendang (*kicked out*).
 
+### Area Navigasi Khusus `TRAINER` (Sub-Admin)
+- **Antarmuka (RBAC Lanjutan):** Mewarisi tata letak *Admin B2B*, namun menu yang ditampilkan (Navigasi Sidebar) **dipangkas secara cerdas**. Trainer tidak akan bisa melihat atau mengakses modul *QR Scanner* atau *Keuangan*, dan hanya terfokus pada Jadwal Kelas & Sesi O2O.
+
 ---
 
-## 🔄 5. Alur Bisnis Operasional (Business Workflows)
+## 🪪 5. Sistem Short ID & Universal QR Code
+Sistem tidak lagi menggunakan UID panjang untuk QR Code. Setiap Member kini diberikan sebuah **`shortId`** unik yang disematkan ke dalam *QR Code E-Card*. Validasi kode dapat dilakukan melalui kamera bawaan (iOS/Android) yang secara otomatis akan membuka *Universal QR Code Endpoint* publik, ataupun dipindai lewat halaman `/admin/scanner` internal.
 
-### 1. Alur Pembayaran Kasir (Offline-First)
+---
+
+## 🔄 6. Alur Bisnis Operasional (Business Workflows)
+
+### 1. Alur Pembayaran Kasir (Offline-First / POS)
 Sistem memprioritaskan alur pembayaran manual (QRIS/Tunai) di meja Kasir untuk memotong biaya *Payment Gateway*:
 1. Member memilih paket dan mencetak transaksi (*Checkout*), sistem mencatat di tabel `Transaction` dengan status `PENDING`.
 2. Member menunjukkan layar ke Kasir di lokasi fisik.
-3. Admin masuk ke `/admin/transactions`, menerima dana, lalu menekan "Setujui".
-4. *Server Action* memproses penyetujuan, mengubah status menjadi `SUCCESS`, dan menetapkan `endDate` (masa aktif) member secara absolut ketat (tepat 1 bulan ke depan untuk VIP).
+3. Kasir masuk ke menu POS (`/admin/transactions`), menerima dana, atau mencatat transaksi baru secara manual.
+4. *Server Action* memproses penyetujuan, mengubah status menjadi `SUCCESS`, dan menetapkan `endDate` (masa aktif) member secara absolut ketat atau mengaktifkan status O2O sesi PT.
 
 ### 2. Alur Booking Kelas (Validasi Kuota & Anti Double-Booking)
 1. Member mendaftar ke kelas yang tersedia melalui Dasbor Member.
@@ -69,5 +78,12 @@ Sistem memprioritaskan alur pembayaran manual (QRIS/Tunai) di meja Kasir untuk m
    - **Kapasitas:** Mencegah pendaftaran jika jumlah partisipan di `ClassBooking` sudah melampaui `capacity`.
    - **Double-Booking:** Mencegah satu pengguna mendaftar ke kelas yang sama berulang kali.
 
-### 3. Alur QR Code Check-in Kehadiran
-Setiap member memiliki "Kartu Digital" bertenaga QR Code yang unik. Admin di meja depan (*Front Desk*) menggunakan menu `/admin/scanner` dengan kamera web bawaan untuk memindai QR Code tersebut. Setelah terpindai sukses, *check-in* dicatat ke dalam rekam jejak kehadiran secara permanen.
+### 3. Alur QR Code Check-in & Deteksi Pintar Kehadiran
+Setiap member memiliki "Kartu Digital" bertenaga QR Code yang unik. Admin di meja depan (*Front Desk*) menggunakan menu `/admin/scanner` dengan kamera web bawaan untuk memindai QR Code tersebut. Setelah terpindai sukses, *check-in* dicatat ke dalam rekam jejak kehadiran secara permanen. Modul ini secara cerdas mendeteksi *Check-in* dan *Check-out* di hari yang sama, memberikan Peringatan (Red Alert) jika masa keanggotaan kadaluarsa, dan menampilkan notifikasi sesi PT jika member memiliki jadwal pada hari tersebut.
+
+### 4. Alur Manajemen Sesi Personal Trainer (O2O)
+1. Superadmin (Owner) menyetel Harga, Hari Operasional, serta membuat Slot Waktu (contoh 09:00 - 10:00) yang spesifik dan menugaskan seorang Trainer (`trainerId`) di Master Jadwal.
+2. Member melihat ketersediaan slot melalui aplikasi (slot yang bentrok dengan pemesanan lain akan dinonaktifkan / *greyed-out* via fungsi `getAvailablePTSlots`).
+3. Setelah Member mem-*booking*, status PT Session adalah `PENDING` (menunggu pembayaran disetujui).
+4. Saat pembayaran diverifikasi, status menjadi `CONFIRMED`.
+5. Di hari pelaksanaan, Trainer memulai kelas (`ONGOING`), dan menyelesaikannya (`COMPLETED`), mencatat `actualStartTime` dan `actualEndTime` ke database untuk *payroll* atau evaluasi di masa depan.

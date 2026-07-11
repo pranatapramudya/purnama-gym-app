@@ -9,9 +9,9 @@ import { prisma } from "@/lib/prisma";
 export default async function MemberDashboard() {
   const user = await currentUser();
   
-  // Solusi Utama (Hotfix): Mekanisme Bypass Webhook menggunakan Upsert yang Atomic
   let dbUser = null;
   if (user) {
+    const shortId = `PRN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     dbUser = await prisma.user.upsert({
       where: { clerkUserId: user.id },
       update: {}, // Jangan ubah apapun jika user sudah ada (misal rolenya sudah diganti jadi ADMIN)
@@ -20,6 +20,7 @@ export default async function MemberDashboard() {
         email: user.emailAddresses[0]?.emailAddress || `no-email-${user.id}@gym.com`,
         name: user.firstName ? `${user.firstName} ${user.lastName}`.trim() : "Member",
         role: "MEMBER_REGULAR", // Nilai default untuk member sesuai skema
+        shortId: shortId,
       },
     });
   }

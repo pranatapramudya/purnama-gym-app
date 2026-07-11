@@ -12,28 +12,30 @@ import {
   Sparkles,
   Menu,
   X,
-  LogOut,
   ChevronRight,
   Package,
-  BookOpen
+  BookOpen,
+  UserCog
 } from "lucide-react";
-import { SignOutButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 
 const navItems = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/members", label: "Member", icon: Users },
-  { href: "/admin/classes", label: "Personal Trainer", icon: CalendarDays },
-  { href: "/admin/transactions", label: "Transaksi", icon: Receipt },
-  { href: "/admin/scanner", label: "Scanner QR", icon: QrCode },
-  { href: "/admin/packages", label: "Paket VIP", icon: Package },
-  { href: "/admin/guides", label: "Panduan Pemula", icon: BookOpen },
+  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "superadmin"] },
+  { href: "/admin/members", label: "Member", icon: Users, roles: ["admin", "superadmin"] },
+  { href: "/admin/personal-trainer", label: "Personal Trainer", icon: CalendarDays, roles: ["superadmin", "trainer"] },
+  { href: "/admin/transactions", label: "Transaksi", icon: Receipt, roles: ["admin", "superadmin"] },
+  { href: "/admin/scanner", label: "Scanner QR", icon: QrCode, roles: ["admin", "superadmin"] },
+  { href: "/admin/packages", label: "Paket VIP", icon: Package, roles: ["superadmin"] },
+  { href: "/admin/guides", label: "Panduan Pemula", icon: BookOpen, roles: ["superadmin"] },
+  { href: "/admin/staff", label: "Manajemen Karyawan", icon: UserCog, roles: ["superadmin"] },
 ];
 
 interface AdminSidebarProps {
   adminName: string;
+  role?: string;
 }
 
-export function AdminSidebar({ adminName }: AdminSidebarProps) {
+export function AdminSidebar({ adminName, role = "member" }: AdminSidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -60,6 +62,7 @@ export function AdminSidebar({ adminName }: AdminSidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1">
         {navItems.map((item) => {
+          if (!item.roles.includes(role)) return null;
           const Icon = item.icon;
           const active = isActive(item.href);
           return (
@@ -90,21 +93,19 @@ export function AdminSidebar({ adminName }: AdminSidebarProps) {
       {/* Admin profile footer */}
       <div className="px-4 pb-5">
         <div className="h-px bg-slate-700/60 mb-4" />
-        <div className="flex items-center gap-3 px-2 mb-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-            {adminName.charAt(0).toUpperCase()}
-          </div>
+        <div className="flex items-center gap-3 px-2">
+          <UserButton 
+            appearance={{
+              elements: {
+                userButtonAvatarBox: "w-9 h-9 rounded-xl shadow-sm",
+              },
+            }}
+          />
           <div className="flex-1 min-w-0">
             <p className="text-white text-[13px] font-semibold truncate leading-tight">{adminName}</p>
             <p className="text-slate-500 text-[10px] font-medium mt-0.5">Administrator</p>
           </div>
         </div>
-        <SignOutButton>
-          <button className="w-full flex items-center gap-2 px-3 py-2 text-[12px] font-semibold text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer">
-            <LogOut className="w-3.5 h-3.5" />
-            Keluar
-          </button>
-        </SignOutButton>
       </div>
     </>
   );
@@ -120,6 +121,7 @@ export function AdminSidebar({ adminName }: AdminSidebarProps) {
       <div className="flex md:hidden fixed bottom-0 w-full bg-slate-900 border-t border-slate-800 z-[60] pb-safe">
         <nav className="flex overflow-x-auto whitespace-nowrap hide-scrollbar items-center w-full h-16">
           {navItems.map((item) => {
+            if (!item.roles.includes(role)) return null;
             const Icon = item.icon;
             const active = isActive(item.href);
             return (
