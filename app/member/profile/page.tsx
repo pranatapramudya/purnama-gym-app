@@ -16,7 +16,7 @@ export default async function ProfilePage() {
   });
 
   const memberId = user ? `M-${user.id.substring(user.id.length - 4).toUpperCase()}` : "Guest";
-  const roleDisplay = user?.role === "MEMBER_VIP" ? "VIP Member" : user?.role === "ADMIN" ? "Admin" : "Regular Member";
+  const roleDisplay = user?.role === "MEMBER" ? "VIP Member" : user?.role === "ADMIN_KASIR" ? "Admin" : "Regular Member";
 
   return (
     <div className="p-4 space-y-6">

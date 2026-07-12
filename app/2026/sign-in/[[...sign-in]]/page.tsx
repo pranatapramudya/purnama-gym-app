@@ -14,8 +14,8 @@ export default function AdminSignInPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50 relative">
         <SignIn 
           routing="path" 
-          path="/admin/sign-in" 
-          forceRedirectUrl="/admin/dashboard" 
+          path="/2026/sign-in" 
+          forceRedirectUrl="/2026/dashboard" 
         />
       </div>
     </div>

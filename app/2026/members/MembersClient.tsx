@@ -35,7 +35,7 @@ export default function MembersClient({
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editPhone, setEditPhone] = useState("");
-  const [editRole, setEditRole] = useState<Role>("MEMBER_REGULAR");
+  const [editRole, setEditRole] = useState<Role>("MEMBER");
   const [editEndDate, setEditEndDate] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   
@@ -44,7 +44,7 @@ export default function MembersClient({
   const [addName, setAddName] = useState("");
   const [addEmail, setAddEmail] = useState("");
   const [addPhone, setAddPhone] = useState("");
-  const [addRole, setAddRole] = useState<Role>("MEMBER_VIP");
+  const [addRole, setAddRole] = useState<Role>("MEMBER");
   const [isAdding, setIsAdding] = useState(false);
   const [addEmailError, setAddEmailError] = useState("");
 
@@ -80,7 +80,7 @@ export default function MembersClient({
     const pkg = packages.find(p => p.id === val);
     if (pkg) {
       handleAddAmountChange(pkg.price.toString());
-      setAddRole(pkg.name.toLowerCase().includes("vip") ? "MEMBER_VIP" : "MEMBER_REGULAR");
+      setAddRole(pkg.name.toLowerCase().includes("vip") ? "MEMBER" : "MEMBER");
     }
   };
 
@@ -147,7 +147,7 @@ export default function MembersClient({
       if (packages.length > 0) {
         setAddType(packages[0].id);
         handleAddAmountChange(packages[0].price.toString());
-        setAddRole(packages[0].name.toLowerCase().includes("vip") ? "MEMBER_VIP" : "MEMBER_REGULAR");
+        setAddRole(packages[0].name.toLowerCase().includes("vip") ? "MEMBER" : "MEMBER");
       }
       router.refresh();
     } else {
@@ -176,16 +176,16 @@ export default function MembersClient({
       label: "Role",
       render: (item: Member) => (
         <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
-          item.role === "MEMBER_VIP"
+          item.role === "MEMBER"
             ? "bg-amber-50 text-amber-700"
             : "bg-blue-50 text-blue-700"
         }`}>
-          {item.role === "MEMBER_VIP" ? (
+          {item.role === "MEMBER" ? (
             <Crown className="w-3 h-3" />
           ) : (
             <Shield className="w-3 h-3" />
           )}
-          {item.role === "MEMBER_VIP" ? "VIP" : "Regular"}
+          {item.role === "MEMBER" ? "VIP" : "Regular"}
         </span>
       ),
     },
@@ -305,7 +305,7 @@ export default function MembersClient({
 
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Role Membership</label>
             <div className="space-y-2 mb-4">
-              {["MEMBER_REGULAR", "MEMBER_VIP"].map((role) => (
+              {["MEMBER", "MEMBER"].map((role) => (
                 <label
                   key={role}
                   className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
@@ -324,9 +324,9 @@ export default function MembersClient({
                     className="accent-rose-500"
                   />
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{role === "MEMBER_VIP" ? "VIP Member" : "Regular Member"}</p>
+                    <p className="text-sm font-semibold text-slate-900">{role === "MEMBER" ? "VIP Member" : "Regular Member"}</p>
                     <p className="text-xs text-slate-500">
-                      {role === "MEMBER_VIP" ? "Akses penuh + sesi PT premium" : "Akses standar"}
+                      {role === "MEMBER" ? "Akses penuh + sesi PT premium" : "Akses standar"}
                     </p>
                   </div>
                 </label>

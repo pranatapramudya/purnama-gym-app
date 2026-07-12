@@ -20,7 +20,7 @@ export function NewStaffModal({ isOpen, onClose, onSuccess }: NewStaffModalProps
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    role: "ADMIN" as "ADMIN" | "TRAINER",
+    role: "ADMIN_KASIR" as "ADMIN_KASIR" | "TRAINER",
   });
 
   if (!isOpen) return null;
@@ -56,7 +56,7 @@ export function NewStaffModal({ isOpen, onClose, onSuccess }: NewStaffModalProps
 
   const resetAndClose = () => {
     setSuccessData(null);
-    setFormData({ name: "", email: "", role: "ADMIN" });
+    setFormData({ name: "", email: "", role: "ADMIN_KASIR" });
     setError("");
     onClose();
   };
@@ -169,7 +169,7 @@ export function NewStaffModal({ isOpen, onClose, onSuccess }: NewStaffModalProps
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 transition-all outline-none text-sm bg-white"
                 >
-                  <option value="ADMIN">Admin Kasir</option>
+                  <option value="ADMIN_KASIR">Admin Kasir</option>
                   <option value="TRAINER">Personal Trainer</option>
                 </select>
               </div>

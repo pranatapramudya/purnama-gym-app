@@ -14,7 +14,7 @@ async function verifyAdmin() {
     select: { id: true, role: true },
   });
 
-  if (!user || (user.role.toUpperCase() !== "ADMIN" && user.role.toUpperCase() !== "SUPERADMIN")) {
+  if (!user || (user.role.toUpperCase() !== "ADMIN_KASIR" && user.role.toUpperCase() !== "SUPER_ADMIN")) {
     throw new Error("Forbidden: Admins or Superadmins only");
   }
   return user;
@@ -29,7 +29,7 @@ async function verifyPTAccess() {
     select: { id: true, role: true },
   });
 
-  if (!user || !["ADMIN", "SUPERADMIN", "TRAINER"].includes(user.role.toUpperCase())) {
+  if (!user || !["ADMIN_KASIR", "SUPER_ADMIN", "TRAINER"].includes(user.role.toUpperCase())) {
     throw new Error("Forbidden: Admins, Superadmins, or Trainers only");
   }
   return user;
@@ -47,7 +47,7 @@ export async function createGymClass(data: { name: string; description: string; 
         capacity: data.capacity,
       },
     });
-    revalidatePath("/admin/personal-trainer");
+    revalidatePath("/2026/personal-trainer");
     revalidatePath("/member/booking");
     return { success: true };
   } catch (error: any) {
@@ -68,7 +68,7 @@ export async function updateGymClass(id: string, data: { name: string; descripti
         capacity: data.capacity,
       },
     });
-    revalidatePath("/admin/personal-trainer");
+    revalidatePath("/2026/personal-trainer");
     revalidatePath("/member/booking");
     return { success: true };
   } catch (error: any) {
@@ -87,7 +87,7 @@ export async function deleteGymClass(id: string) {
     await prisma.gymClass.delete({
       where: { id },
     });
-    revalidatePath("/admin/personal-trainer");
+    revalidatePath("/2026/personal-trainer");
     revalidatePath("/member/booking");
     return { success: true };
   } catch (error: any) {
@@ -108,7 +108,7 @@ export async function updateMembership(userId: string, data: { role: Role; endDa
         phoneNumber: data.phone
       },
     });
-    revalidatePath("/admin/members");
+    revalidatePath("/2026/members");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -134,13 +134,13 @@ export async function verifyTransaction(transactionId: string) {
     }
 
     if (transaction.type === "BULANAN_REGULAR") {
-      role = "MEMBER_REGULAR";
+      role = "MEMBER";
       endDate.setMonth(endDate.getMonth() + 1);
     } else if (transaction.type === "BULANAN_VIP") {
-      role = "MEMBER_VIP";
+      role = "MEMBER";
       endDate = new Date(new Date().setMonth(new Date().getMonth() + 1));
     } else if (transaction.type === "HARIAN") {
-      role = "MEMBER_REGULAR";
+      role = "MEMBER";
       endDate.setDate(endDate.getDate() + 1);
     }
 
@@ -155,9 +155,9 @@ export async function verifyTransaction(transactionId: string) {
       }),
     ]);
 
-    revalidatePath("/admin/transactions");
-    revalidatePath("/admin/members");
-    revalidatePath("/admin/dashboard");
+    revalidatePath("/2026/transactions");
+    revalidatePath("/2026/members");
+    revalidatePath("/2026/dashboard");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -178,7 +178,7 @@ export async function createMembershipPackage(data: { name: string; durationMont
         originalPrice: data.originalPrice,
       }
     });
-    revalidatePath("/admin/packages");
+    revalidatePath("/2026/packages");
     revalidatePath("/member/packages");
     return { success: true };
   } catch (error: any) {
@@ -200,7 +200,7 @@ export async function updateMembershipPackage(id: string, data: { name: string; 
         originalPrice: data.originalPrice,
       }
     });
-    revalidatePath("/admin/packages");
+    revalidatePath("/2026/packages");
     revalidatePath("/member/packages");
     return { success: true };
   } catch (error: any) {
@@ -212,7 +212,7 @@ export async function deleteMembershipPackage(id: string) {
   await verifyAdmin();
   try {
     await prisma.membershipPackage.delete({ where: { id } });
-    revalidatePath("/admin/packages");
+    revalidatePath("/2026/packages");
     revalidatePath("/member/packages");
     return { success: true };
   } catch (error: any) {
@@ -231,7 +231,7 @@ export async function createGuideVideo(data: { title: string; url: string; categ
         category: data.category,
       }
     });
-    revalidatePath("/admin/guides");
+    revalidatePath("/2026/guides");
     revalidatePath("/member/guide");
     return { success: true };
   } catch (error: any) {
@@ -250,7 +250,7 @@ export async function updateGuideVideo(id: string, data: { title: string; url: s
         category: data.category,
       }
     });
-    revalidatePath("/admin/guides");
+    revalidatePath("/2026/guides");
     revalidatePath("/member/guide");
     return { success: true };
   } catch (error: any) {
@@ -262,7 +262,7 @@ export async function deleteGuideVideo(id: string) {
   await verifyAdmin();
   try {
     await prisma.guideVideo.delete({ where: { id } });
-    revalidatePath("/admin/guides");
+    revalidatePath("/2026/guides");
     revalidatePath("/member/guide");
     return { success: true };
   } catch (error: any) {
@@ -310,7 +310,7 @@ export async function processQRCheckIn(userId: string) {
         where: { id: activeCheckIn.id },
         data: { checkOutTime: new Date() }
       });
-      revalidatePath("/admin/scanner");
+      revalidatePath("/2026/scanner");
       return {
         success: true,
         data: {
@@ -338,7 +338,7 @@ export async function processQRCheckIn(userId: string) {
       }
     });
 
-    revalidatePath("/admin/scanner");
+    revalidatePath("/2026/scanner");
 
     return {
       success: true,
@@ -417,9 +417,9 @@ export async function createMemberManually(data: {
       });
     });
 
-    revalidatePath("/admin/members");
-    revalidatePath("/admin/transactions");
-    revalidatePath("/admin/dashboard");
+    revalidatePath("/2026/members");
+    revalidatePath("/2026/transactions");
+    revalidatePath("/2026/dashboard");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -433,7 +433,7 @@ export async function confirmPTSession(id: string) {
       where: { id },
       data: { status: "CONFIRMED" }
     });
-    revalidatePath("/admin/personal-trainer");
+    revalidatePath("/2026/personal-trainer");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -450,7 +450,7 @@ export async function startPTSession(id: string) {
         actualStartTime: new Date()
       }
     });
-    revalidatePath("/admin/personal-trainer");
+    revalidatePath("/2026/personal-trainer");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -467,7 +467,7 @@ export async function finishPTSession(id: string) {
         actualEndTime: new Date()
       }
     });
-    revalidatePath("/admin/personal-trainer");
+    revalidatePath("/2026/personal-trainer");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -540,14 +540,14 @@ export async function createManualTransaction(data: {
         if (data.expiredDate) {
           endDate = new Date(data.expiredDate);
           if (packageDurationMonths > 0 || data.type === "HARIAN") {
-            newRole = isVip ? "MEMBER_VIP" : "MEMBER_REGULAR";
+            newRole = isVip ? "MEMBER" : "MEMBER";
           }
         } else {
           if (packageDurationMonths > 0) {
-            newRole = isVip ? "MEMBER_VIP" : "MEMBER_REGULAR";
+            newRole = isVip ? "MEMBER" : "MEMBER";
             endDate.setMonth(endDate.getMonth() + packageDurationMonths);
           } else if (data.type === "HARIAN") {
-            newRole = "MEMBER_REGULAR";
+            newRole = "MEMBER";
             endDate.setDate(endDate.getDate() + 1);
           }
         }
@@ -563,9 +563,9 @@ export async function createManualTransaction(data: {
 
     await prisma.$transaction(transactionQueries);
 
-    revalidatePath("/admin/transactions");
-    revalidatePath("/admin/dashboard");
-    if (targetUserId) revalidatePath("/admin/members");
+    revalidatePath("/2026/transactions");
+    revalidatePath("/2026/dashboard");
+    if (targetUserId) revalidatePath("/2026/members");
 
     return { success: true };
   } catch (error: any) {
@@ -585,7 +585,7 @@ export async function updatePTSetting(data: { pricePerSession: string | number; 
     select: { role: true },
   });
 
-  if (!user || user.role.toUpperCase() !== "SUPERADMIN") {
+  if (!user || user.role.toUpperCase() !== "SUPER_ADMIN") {
     throw new Error("Forbidden: Superadmin only");
   }
 
@@ -618,7 +618,7 @@ export async function updatePTSetting(data: { pricePerSession: string | number; 
         }
       });
     }
-    revalidatePath("/admin/personal-trainer");
+    revalidatePath("/2026/personal-trainer");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -651,7 +651,7 @@ export async function createPTScheduleSlot(data: {
             { id: data.trainerInput },
             { name: data.trainerInput }
           ],
-          role: { in: ["ADMIN", "SUPERADMIN"] }
+          role: { in: ["ADMIN_KASIR", "SUPER_ADMIN"] }
         }
       });
       if (userMatch) {
@@ -671,7 +671,7 @@ export async function createPTScheduleSlot(data: {
         maxCapacity: data.maxCapacity ?? 1
       }
     });
-    revalidatePath("/admin/personal-trainer");
+    revalidatePath("/2026/personal-trainer");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -684,7 +684,7 @@ export async function deletePTScheduleSlot(id: string) {
     await prisma.pTScheduleSlot.delete({
       where: { id }
     });
-    revalidatePath("/admin/personal-trainer");
+    revalidatePath("/2026/personal-trainer");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

@@ -13,7 +13,7 @@ async function main() {
   // Update jadi ADMIN
   const updated = await prisma.user.update({
     where: { id: user.id },
-    data: { role: 'ADMIN' }
+    data: { role: 'SUPER_ADMIN' }
   });
   
   console.log(`Berhasil mengubah ${updated.email} menjadi ADMIN.`);

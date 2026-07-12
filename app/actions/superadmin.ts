@@ -24,7 +24,7 @@ function generateStrongPassword(length = 12): string {
 export async function createStaffAccount(data: {
   name: string;
   email: string;
-  role: "ADMIN" | "TRAINER";
+  role: "ADMIN_KASIR" | "TRAINER";
 }): Promise<CreateStaffResponse> {
   try {
     const { userId } = await auth();
@@ -36,7 +36,7 @@ export async function createStaffAccount(data: {
       where: { clerkUserId: userId },
     });
 
-    if (!superAdmin || superAdmin.role !== "SUPERADMIN") {
+    if (!superAdmin || superAdmin.role !== "SUPER_ADMIN") {
       return { success: false, message: "Forbidden: Only Super Admin can create staff accounts" };
     }
 
@@ -89,7 +89,7 @@ export async function deleteStaffAccount(userId: string, targetClerkUserId: stri
       select: { role: true }
     });
 
-    if (!superAdmin || superAdmin.role !== "SUPERADMIN") {
+    if (!superAdmin || superAdmin.role !== "SUPER_ADMIN") {
       return { success: false, message: "Forbidden: Only Super Admin can delete staff accounts" };
     }
 

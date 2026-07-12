@@ -37,9 +37,9 @@ export default async function ClassesPage() {
   });
 
   const trainers = await prisma.user.findMany({
-    where: { role: { in: ["ADMIN", "SUPERADMIN", "TRAINER"] } },
+    where: { role: { in: ["ADMIN_KASIR", "SUPER_ADMIN", "TRAINER"] } },
     select: { id: true, name: true, email: true }
   });
 
-  return <ClassesClient initialSessions={formattedSessions} userRole={currentUser?.role || "ADMIN"} ptSetting={ptSetting} initialSlots={scheduleSlots as any} trainers={trainers} />;
+  return <ClassesClient initialSessions={formattedSessions} userRole={currentUser?.role || "ADMIN_KASIR"} ptSetting={ptSetting} initialSlots={scheduleSlots as any} trainers={trainers} />;
 }

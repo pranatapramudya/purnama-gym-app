@@ -59,19 +59,33 @@ export async function POST(req: Request) {
   const fName = cleanPart(first_name);
   const lName = cleanPart(last_name);
   const fullName = `${fName} ${lName}`.trim() || "Member Gym";
-  const email = email_addresses?.[0]?.email_address || "no-email@gym.com";
+  const email = (email_addresses?.[0]?.email_address || "no-email@gym.com").toLowerCase();
 
   // 1. CREATE (user.created)
   if (eventType === 'user.created') {
     try {
       const shortId = `PRN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+      const superAdminEmailsString = process.env.SUPER_ADMIN_EMAILS || "";
+      const superAdminEmails = superAdminEmailsString
+        .split(',')
+        .map(e => e.trim().toLowerCase())
+        .filter(e => e.length > 0);
+        
+      const isSuperAdmin = superAdminEmails.includes(email);
+      const role = isSuperAdmin ? 'SUPER_ADMIN' : 'MEMBER';
+
+      console.log(`[WEBHOOK] Incoming Email:`, email);
+      console.log(`[WEBHOOK] Parsed VIP List:`, superAdminEmails);
+      console.log(`[WEBHOOK] Assigned Role:`, role);
+
       // Sinkronisasi insert user baru ke Database PostgreSQL (Prisma)
       await db.user.create({
         data: {
           clerkUserId: id, // Mapping `id` dari Clerk ke `clerkUserId` database kita
           email: email,
           name: fullName,
-          role: 'MEMBER_REGULAR', // Role default 
+          role: role,
           shortId: shortId,
         },
       });

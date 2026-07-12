@@ -1,7 +1,7 @@
 import { Crown, Sparkles } from "lucide-react";
 
 export function MembershipCard({ name, role, endDate, firstName }: { name: string, role: string, endDate: Date, firstName?: string }) {
-  const isVip = role === "MEMBER_VIP" && endDate && new Date(endDate) > new Date();
+  const isVip = role === "MEMBER" && endDate && new Date(endDate) > new Date();
   
   // VIP menggunakan gradien hitam/emas elegan. Non-VIP menggunakan abu-abu netral.
   const bgClass = isVip 

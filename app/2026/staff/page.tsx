@@ -16,15 +16,15 @@ export default async function StaffPage() {
     select: { role: true },
   });
 
-  if (!dbUser || dbUser.role !== "SUPERADMIN") {
-    redirect("/admin/dashboard");
+  if (!dbUser || dbUser.role !== "SUPER_ADMIN") {
+    redirect("/2026/dashboard");
   }
 
   // Ambil semua user dengan role ADMIN, SUPERADMIN, dan TRAINER
   const staff = await prisma.user.findMany({
     where: {
       role: {
-        in: ["ADMIN", "SUPERADMIN", "TRAINER"],
+        in: ["ADMIN_KASIR", "SUPER_ADMIN", "TRAINER"],
       },
     },
     orderBy: {

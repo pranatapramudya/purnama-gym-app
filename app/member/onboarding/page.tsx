@@ -12,8 +12,8 @@ export default async function OnboardingPage() {
   });
 
   // PRD-v3.52: Bypass onboarding for ADMIN and SUPERADMIN
-  if (dbUser?.role === "ADMIN" || dbUser?.role === "SUPERADMIN") {
-    return redirect("/admin/dashboard");
+  if (dbUser?.role === "ADMIN_KASIR" || dbUser?.role === "SUPER_ADMIN") {
+    return redirect("/2026/dashboard");
   }
 
   // If already complete, skip onboarding

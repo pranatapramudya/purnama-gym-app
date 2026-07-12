@@ -280,7 +280,7 @@ export default function ClassesClient({
       </div>
 
       {/* Tabs */}
-      {userRole === "SUPERADMIN" && (
+      {userRole === "SUPER_ADMIN" && (
         <div className="flex items-center gap-2 border-b border-slate-200 mb-6">
           <button
             onClick={() => setActiveTab("JADWAL")}
@@ -301,7 +301,7 @@ export default function ClassesClient({
         </div>
       )}
 
-      {activeTab === "PENGATURAN" && userRole === "SUPERADMIN" ? (
+      {activeTab === "PENGATURAN" && userRole === "SUPER_ADMIN" ? (
         <div className="max-w-2xl bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           <h2 className="text-lg font-bold text-slate-900 mb-6">Pengaturan Master Ketersediaan & Harga PT</h2>
           <form onSubmit={handleSaveSetting} className="space-y-6">

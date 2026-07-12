@@ -17,7 +17,7 @@ export default async function QRCodePage() {
 
   const qrData = user.shortId || user.id;
   const memberId = user.shortId || `PG-${user.id.substring(user.id.length - 4).toUpperCase()}`;
-  const isVip = user.role === "MEMBER_VIP" && user.endDate && user.endDate > new Date();
+  const isVip = user.role === "MEMBER" && user.endDate && user.endDate > new Date();
   const userName = user.name || "Member Purnama";
 
   return (

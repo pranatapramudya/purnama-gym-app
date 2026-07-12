@@ -21,7 +21,7 @@ export default async function AdminDashboard(props: PageProps) {
 
   const userRole = currentUser?.role || "MEMBER";
 
-  if (userRole !== "ADMIN" && userRole !== "SUPERADMIN") {
+  if (userRole !== "ADMIN_KASIR" && userRole !== "SUPER_ADMIN") {
     redirect("/");
   }
 
@@ -54,14 +54,14 @@ export default async function AdminDashboard(props: PageProps) {
   // 1. Active & Non-Member Segments
   const activeMembers = await prisma.user.count({
     where: {
-      role: { in: ["MEMBER_REGULAR", "MEMBER_VIP"] },
+      role: { in: ["MEMBER", "MEMBER"] },
       endDate: { gt: now }
     },
   });
 
   const nonMembers = await prisma.user.count({
     where: {
-      role: { in: ["MEMBER_REGULAR", "MEMBER_VIP"] },
+      role: { in: ["MEMBER", "MEMBER"] },
       OR: [
         { endDate: null },
         { endDate: { lte: now } }

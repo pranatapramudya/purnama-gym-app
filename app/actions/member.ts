@@ -68,7 +68,7 @@ export async function bookClass(classId: string) {
     });
 
     revalidatePath("/member/booking");
-    revalidatePath("/admin/classes");
+    revalidatePath("/2026/classes");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -95,7 +95,7 @@ export async function cancelBooking(classId: string) {
     });
 
     revalidatePath("/member/booking");
-    revalidatePath("/admin/classes");
+    revalidatePath("/2026/classes");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -117,7 +117,7 @@ export async function createTransaction(type: string, amount: number, method: st
     });
 
     revalidatePath("/member/payment");
-    revalidatePath("/admin/transactions");
+    revalidatePath("/2026/transactions");
     return { success: true, transactionId: transaction.id };
   } catch (error: any) {
     return { success: false, error: error.message };

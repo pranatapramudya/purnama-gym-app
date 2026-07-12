@@ -15,25 +15,20 @@ export default async function MemberLayout({
     const userEmail = clerkUser.emailAddresses[0]?.emailAddress || `no-email-${clerkUser.id}@gym.com`;
     const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'Member Purnama';
 
-    const dbUser = await prisma.user.upsert({
+    const dbUser = await prisma.user.findUnique({
       where: { 
-        email: userEmail 
-      },
-      update: {
-        clerkUserId: clerkUser.id,
-        name: fullName
-      },
-      create: {
-        clerkUserId: clerkUser.id,
-        email: userEmail,
-        name: fullName,
-        role: "MEMBER_REGULAR"
+        clerkUserId: clerkUser.id 
       }
     });
 
-    if (dbUser.role === "ADMIN" || dbUser.role === "SUPERADMIN") {
+    if (!dbUser) {
       const { redirect } = await import("next/navigation");
-      redirect("/admin/dashboard");
+      redirect("/auth-sync");
+    }
+
+    if (dbUser.role === "ADMIN_KASIR" || dbUser.role === "SUPER_ADMIN") {
+      const { redirect } = await import("next/navigation");
+      redirect("/2026/dashboard");
     }
 
     const headersList = await headers();

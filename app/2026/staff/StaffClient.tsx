@@ -54,13 +54,13 @@ export default function StaffClient({ initialStaff, currentUserId }: StaffClient
 
   const getRoleBadge = (role: string) => {
     switch (role) {
-      case "SUPERADMIN":
+      case "SUPER_ADMIN":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700">
             <Shield className="w-3 h-3" /> Super Admin
           </span>
         );
-      case "ADMIN":
+      case "ADMIN_KASIR":
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700">
             <Shield className="w-3 h-3" /> Admin Kasir

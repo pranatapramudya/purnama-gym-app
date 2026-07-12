@@ -11,15 +11,25 @@ export default async function Home() {
   if (userId) {
     const dbUser = await prisma.user.findUnique({
       where: { clerkUserId: userId },
-      select: { role: true },
+      select: { role: true, phoneNumber: true, address: true },
     });
 
     if (dbUser) {
-      if (dbUser.role === "ADMIN" || dbUser.role === "SUPERADMIN") {
-        redirect("/admin/dashboard");
+      if (dbUser.role === "SUPER_ADMIN" || dbUser.role === "ADMIN_KASIR") {
+        redirect("/2026/dashboard");
+      } else if (dbUser.role === "TRAINER") {
+        redirect("/2026/personal-trainer");
       } else {
-        redirect("/member/dashboard");
+        // Role: MEMBER
+        if (!dbUser.phoneNumber || !dbUser.address) {
+          redirect("/member/onboarding");
+        } else {
+          redirect("/member/dashboard");
+        }
       }
+    } else {
+      // User is logged into Clerk but not found in Prisma yet
+      redirect("/auth-sync");
     }
   }
   return (
@@ -72,7 +82,7 @@ export default async function Home() {
       {/* --- FOOTER --- */}
       <footer className="py-8 border-t border-slate-200 text-center bg-slate-50">
         <p className="text-slate-500 text-sm font-medium">
-          © <Link href="/admin/sign-in" className="cursor-pointer hover:opacity-80 transition-opacity">{new Date().getFullYear()}</Link> Purnama Gym Sumedang. <br className="md:hidden" />
+          © <Link href="/2026/sign-in" className="cursor-pointer hover:opacity-80 transition-opacity">{new Date().getFullYear()}</Link> Purnama Gym Sumedang. <br className="md:hidden" />
           Hak cipta dilindungi.
         </p>
       </footer>

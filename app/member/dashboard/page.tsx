@@ -11,23 +11,14 @@ export default async function MemberDashboard() {
   
   let dbUser = null;
   if (user) {
-    const shortId = `PRN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    dbUser = await prisma.user.upsert({
+    dbUser = await prisma.user.findUnique({
       where: { clerkUserId: user.id },
-      update: {}, // Jangan ubah apapun jika user sudah ada (misal rolenya sudah diganti jadi ADMIN)
-      create: {
-        clerkUserId: user.id,
-        email: user.emailAddresses[0]?.emailAddress || `no-email-${user.id}@gym.com`,
-        name: user.firstName ? `${user.firstName} ${user.lastName}`.trim() : "Member",
-        role: "MEMBER_REGULAR", // Nilai default untuk member sesuai skema
-        shortId: shortId,
-      },
     });
   }
 
-  const role = dbUser?.role || "MEMBER_REGULAR";
+  const role = dbUser?.role || "MEMBER";
   const activeUntilDate = dbUser?.endDate || new Date(0);
-  const isVipActive = role === "MEMBER_VIP" && activeUntilDate > new Date();
+  const isVipActive = role === "MEMBER" && activeUntilDate > new Date();
   const membershipType = isVipActive ? "VIP Member" : "Non-Member";
 
   return (

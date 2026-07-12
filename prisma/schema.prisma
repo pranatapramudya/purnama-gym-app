@@ -7,11 +7,10 @@ datasource db {
 }
 
 enum Role {
-  MEMBER_REGULAR
-  MEMBER_VIP
-  ADMIN
-  SUPERADMIN
+  SUPER_ADMIN
+  ADMIN_KASIR
   TRAINER
+  MEMBER
 }
 
 enum TransactionStatus {
@@ -33,7 +32,7 @@ model User {
   name        String?
   phoneNumber String?
   address     String?
-  role        Role      @default(MEMBER_REGULAR)
+  role        Role      @default(MEMBER)
   endDate     DateTime? // Kapan membership berakhir
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

@@ -361,11 +361,11 @@ export default function DashboardClient({
                     {new Date(item.timestamp).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
                   </p>
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                    item.user.role === "MEMBER_VIP"
+                    item.user.role === "MEMBER"
                       ? "bg-amber-50 text-amber-600"
                       : "bg-blue-50 text-blue-600"
                   }`}>
-                    {item.user.role === "MEMBER_VIP" ? "VIP" : "Regular"}
+                    {item.user.role === "MEMBER" ? "VIP" : "Regular"}
                   </span>
                 </div>
               </div>

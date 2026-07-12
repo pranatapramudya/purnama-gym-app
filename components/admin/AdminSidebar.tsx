@@ -20,14 +20,14 @@ import {
 import { UserButton } from "@clerk/nextjs";
 
 const navItems = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "superadmin"] },
-  { href: "/admin/members", label: "Member", icon: Users, roles: ["admin", "superadmin"] },
-  { href: "/admin/personal-trainer", label: "Personal Trainer", icon: CalendarDays, roles: ["superadmin", "trainer"] },
-  { href: "/admin/transactions", label: "Transaksi", icon: Receipt, roles: ["admin", "superadmin"] },
-  { href: "/admin/scanner", label: "Scanner QR", icon: QrCode, roles: ["admin", "superadmin"] },
-  { href: "/admin/packages", label: "Paket VIP", icon: Package, roles: ["superadmin"] },
-  { href: "/admin/guides", label: "Panduan Pemula", icon: BookOpen, roles: ["superadmin"] },
-  { href: "/admin/staff", label: "Manajemen Karyawan", icon: UserCog, roles: ["superadmin"] },
+  { href: "/2026/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin_kasir", "super_admin"] },
+  { href: "/2026/members", label: "Member", icon: Users, roles: ["admin_kasir", "super_admin"] },
+  { href: "/2026/personal-trainer", label: "Personal Trainer", icon: CalendarDays, roles: ["super_admin", "trainer"] },
+  { href: "/2026/transactions", label: "Transaksi", icon: Receipt, roles: ["admin_kasir", "super_admin"] },
+  { href: "/2026/scanner", label: "Scanner QR", icon: QrCode, roles: ["admin_kasir", "super_admin"] },
+  { href: "/2026/packages", label: "Paket VIP", icon: Package, roles: ["super_admin"] },
+  { href: "/2026/guides", label: "Panduan Pemula", icon: BookOpen, roles: ["super_admin"] },
+  { href: "/2026/staff", label: "Manajemen Karyawan", icon: UserCog, roles: ["super_admin"] },
 ];
 
 interface AdminSidebarProps {

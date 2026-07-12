@@ -196,7 +196,7 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
                 <p className="text-xs text-red-600 font-medium">Member ini tidak dapat check-in karena masa aktifnya sudah habis. Silakan lakukan perpanjangan langganan terlebih dahulu.</p>
                 <div className="pt-2">
                   <a 
-                    href={`/admin/transactions?userId=${expiredUserId}`}
+                    href={`/2026/transactions?userId=${expiredUserId}`}
                     className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white font-bold text-xs rounded-lg hover:bg-red-700 transition-colors shadow-sm"
                   >
                     Lakukan Perpanjangan
@@ -238,9 +238,9 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
                 </div>
                 <div className="text-right">
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    lastScan.role === "MEMBER_VIP" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
+                    lastScan.role === "MEMBER" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
                   }`}>
-                    {lastScan.role === "MEMBER_VIP" ? "VIP" : "Regular"}
+                    {lastScan.role === "MEMBER" ? "VIP" : "Regular"}
                   </span>
                   <p className="text-[10px] text-slate-500 mt-1">{lastScan.time}</p>
                 </div>
@@ -276,9 +276,9 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
                       </div>
                     </div>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                      scan.role === "MEMBER_VIP" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
+                      scan.role === "MEMBER" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
                     }`}>
-                      {scan.role === "MEMBER_VIP" ? "VIP" : "REG"}
+                      {scan.role === "MEMBER" ? "VIP" : "REG"}
                     </span>
                   </div>
                 ))

@@ -22,7 +22,7 @@ export default function SignInPage() {
 
       {/* Kanan - Auth Section */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50 relative">
-        <SignIn path="/sign-in" routing="path" signUpUrl="/sign-up" forceRedirectUrl="/member/dashboard" />
+        <SignIn path="/sign-in" routing="path" signUpUrl="/sign-up" forceRedirectUrl="/auth-sync" />
       </div>
     </main>
   );
