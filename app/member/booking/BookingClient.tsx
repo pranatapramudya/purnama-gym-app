@@ -175,7 +175,7 @@ export default function BookingClient({ initialSlots, ptSetting }: { initialSlot
       )}
 
       {selectedSlot && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4 sm:p-0 transition-opacity">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center p-4 sm:p-0 pb-24 sm:pb-0 transition-opacity">
           <div className="bg-white w-full sm:max-w-sm rounded-[2rem] p-6 shadow-2xl relative animate-in slide-in-from-bottom-8 sm:slide-in-from-bottom-4 zoom-in-95">
             <button 
               onClick={() => setSelectedSlot(null)}
