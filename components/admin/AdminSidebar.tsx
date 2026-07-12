@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Package,
   BookOpen,
-  UserCog
+  UserCog,
+  BarChart3
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 

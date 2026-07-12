@@ -122,7 +122,7 @@ export default function DashboardClient({
   };
 
   const stats = [
-    ...(userRole === 'superadmin' ? [{
+    ...(userRole === 'super_admin' ? [{
       label: "Member Aktif",
       value: activeMembers.toString(),
       change: "Real-time",
@@ -132,7 +132,7 @@ export default function DashboardClient({
       gradient: "from-violet-500 to-purple-500",
       shadow: "shadow-violet-500/20",
     }] : []),
-    ...(userRole === 'superadmin' ? [{
+    ...(userRole === 'super_admin' ? [{
       label: getRevenueLabel(),
       value: `Rp ${getRevenueValue().toLocaleString("id-ID")}`,
       change: "Real-time",
@@ -185,7 +185,7 @@ export default function DashboardClient({
             </button>
           </div>
           
-          {(userRole === 'superadmin' || userRole === 'admin') && (
+          {(userRole === 'super_admin' || userRole === 'admin') && (
             <Link
               href={`/api/export?filter=${revenueFilter}`}
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
@@ -200,7 +200,7 @@ export default function DashboardClient({
       {/* Filter and Stats */}
       <div className="space-y-4">
         <div className="flex justify-end relative" ref={dropdownRef}>
-          {userRole === 'superadmin' ? (
+          {userRole === 'super_admin' ? (
             <>
               {/* Custom Dropdown */}
               <button
@@ -284,9 +284,9 @@ export default function DashboardClient({
       </div>
 
       {/* Charts & Activity */}
-      <section className={`grid grid-cols-1 ${userRole === 'superadmin' ? 'xl:grid-cols-5' : 'xl:grid-cols-1'} gap-6`}>
+      <section className={`grid grid-cols-1 ${userRole === 'super_admin' ? 'xl:grid-cols-5' : 'xl:grid-cols-1'} gap-6`}>
         {/* Revenue Chart */}
-        {userRole === 'superadmin' && (
+        {userRole === 'super_admin' && (
           <div className="xl:col-span-3 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -344,7 +344,7 @@ export default function DashboardClient({
         )}
 
         {/* Recent Activity */}
-        <div className={`${userRole === 'superadmin' ? 'xl:col-span-2' : 'xl:col-span-1'} bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm`}>
+        <div className={`${userRole === 'super_admin' ? 'xl:col-span-2' : 'xl:col-span-1'} bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm`}>
           <h3 className="text-sm font-bold text-slate-900 mb-4">Check-in Terkini</h3>
           <div className="space-y-3">
             {recentCheckins.map((item) => (
