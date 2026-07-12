@@ -30,18 +30,18 @@ interface PTScheduleSlotItem {
   trainerName: string | null;
   trainer: { name: string | null } | null;
   maxCapacity: number;
+  price: number;
+  discountPercentage: number;
 }
 
 export default function ClassesClient({ 
   initialSessions,
   userRole,
-  ptSetting,
   initialSlots,
   trainers
 }: { 
   initialSessions: PTSessionItem[];
   userRole: string;
-  ptSetting: PTSettingItem | null;
   initialSlots: PTScheduleSlotItem[];
   trainers: { id: string; name: string | null; email: string }[];
 }) {

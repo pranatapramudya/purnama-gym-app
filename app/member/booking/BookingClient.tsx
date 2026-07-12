@@ -17,6 +17,7 @@ interface PTSlotItem {
   trainerName: string;
   currentBookings: number;
   maxCapacity: number;
+  discountPercentage?: number;
 }
 
 export default function BookingClient({ initialSlots, ptSetting }: { initialSlots: PTSlotItem[], ptSetting: any }) {

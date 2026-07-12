@@ -30,7 +30,6 @@ export default async function ClassesPage() {
     status: s.status,
   }));
 
-  const ptSetting = await prisma.pTSetting.findFirst();
   const scheduleSlots = await prisma.pTScheduleSlot.findMany({
     orderBy: { startTime: 'asc' },
     include: { trainer: { select: { name: true } } }
@@ -41,5 +40,5 @@ export default async function ClassesPage() {
     select: { id: true, name: true, email: true }
   });
 
-  return <ClassesClient initialSessions={formattedSessions} userRole={currentUser?.role || "ADMIN_KASIR"} ptSetting={ptSetting} initialSlots={scheduleSlots as any} trainers={trainers} />;
+  return <ClassesClient initialSessions={formattedSessions} userRole={currentUser?.role || "ADMIN_KASIR"} initialSlots={scheduleSlots as any} trainers={trainers} />;
 }
