@@ -59,22 +59,18 @@ npm run dev
 - `/lib` - Core configurations (Prisma Client, dll.)
 - `/prisma` - Database schema and configurations
 
-## 🌟 Recent Updates (Phase 3.95 - Final Sprint)
-*Pembaruan arsitektur dan optimasi fitur terbaru untuk skala Enterprise:*
-**User Roles yang Didukung:** Member, Admin, Super User, dan Trainer.
-1. **Autentikasi & Routing:** Perbaikan *redirect* pasca-login (langsung menuju Dashboard) dan implementasi *Hidden Trigger* (pintu masuk tersembunyi via Footer) untuk akses Login Admin (*Split-Screen*).
-2. **Arsitektur Layout:** Pemisahan total *Nested Layout* (B2B SaaS Sidebar) antara area Member dan Admin.
-3. **Optimasi Performa Frontend:** Transisi global dari tag HTML `<a>` menuju komponen `next/link` untuk navigasi bebas *reload* super cepat, dilengkapi dengan *Skeleton Loading* (`loading.tsx`).
-4. **UI/UX Responsif (Admin):** Pola adaptif "Table-to-Card" untuk seluruh tabel data agar ramah seluler (*mobile-friendly*) tanpa *horizontal scroll* yang mengganggu.
-5. **Database & Bypass Clerk Pro:** Penambahan kolom profil spesifik (`phoneNumber` & `address`) dengan alur *Custom Onboarding Flow* adaptif, menghilangkan ketergantungan pada fitur berbayar Clerk.
-6. **Robust Data Sync (Upsert):** Imunisasi terhadap error `Unique constraint failed` melalui sinkronisasi database (Prisma) berbasis `upsert` dan injeksi Nama lengkap secara otomatis.
-7. **Dynamic UI & Business Logic:**
-   - E-Card QR Code dinamis berbasis "Black Card" eksklusif untuk keanggotaan VIP.
-   - Proteksi *Anti-Looping* pintar (disabling button otomatis) untuk menghindari transaksi berulang saat status VIP masih aktif.
-   - *Conditional rendering* super rapi di UI Beranda (menyembunyikan atribut kedaluwarsa untuk Non-Member).
-   - Mode aman "Edit/Read-Only" interaktif pada formulir Profil pengguna.
-8. **Modul Personal Trainer (O2O Lifecycle):** Sistem manajemen jadwal PT dengan siklus PENDING -> CONFIRMED -> ONGOING -> COMPLETED, didukung form *Point of Sale* (POS) untuk input pembayaran manual kasir.
-9. **Manajemen Ketersediaan & Slot PT:** Superadmin memiliki kendali atas Master Jadwal PT (Hari, Jam, Harga, & Assignment Trainer) yang secara cerdas mengubah UI ketersediaan di Frontend (*greyed out* jika bentrok/terisi).
+## 🌟 Fitur Utama & Pembaruan Terkini (Versi 4.30)
+*Sistem kini beroperasi penuh dengan skalabilitas tingkat Enterprise:*
+**User Roles yang Didukung:** Member, Admin, Superadmin, dan Trainer.
+
+1. **Sistem Harga Dinamis (Snapshot Slot Pricing):** Manajemen harga PT tidak lagi menggunakan master global. Setiap slot memiliki harga dan diskon independen yang disimpan sebagai *snapshot* (Immutable Pricing), mencegah kebocoran data harga (*Ghost Pricing*) di frontend.
+2. **Universal QR Code & Pemindai Biodata Pintar:** ID Member (misal: `M-RGAO`) dipetakan dalam QR Code dinamis berbasis URL. Scanner internal cerdas mendeteksi QR, melakukan pencarian ke *database* (`endsWith` fallback), dan memunculkan Kartu Biodata interaktif (Nama, Status VIP, Notifikasi Sesi PT) sekaligus mencatat riwayat Check-in.
+3. **Analitik Dashboard Real-Time (Zona Waktu WIB):** Metrik operasional (Pendapatan, Jumlah Check-in, Sesi PT) dihitung sangat akurat dengan kalibrasi batas zona waktu (`Asia/Jakarta`), mencegah *bug offset* UTC pada larut malam.
+4. **Antarmuka (UI/UX) Pro-Level:** Kartu Member PT dengan hierarki tipografi premium, transisi desain list-view modern, *backdrop blur*, dan stiker diskon interaktif.
+5. **Autentikasi & Routing Cerdas:** *Hidden Trigger* di *footer* publik untuk login rahasia admin. Pemisahan tata letak (Nested Layout B2B SaaS) antara portal kasir dan dasbor *mobile-first* member.
+6. **Bypass Keterbatasan IAM (Clerk):** *Custom Onboarding Flow* menyimpan atribut krusial (`phoneNumber`, `address`) langsung ke Neon DB menggunakan operasi *Atomic Upsert* yang tangguh terhadap `Unique constraint failed`.
+7. **Modul Point-of-Sale (POS) Hibrida:** Proses *checkout* paket langganan dan kelas PT dikelola secara *Offline-First*. Pembayaran diproses di meja Kasir untuk menekan biaya potongan *Payment Gateway*.
+8. **Proteksi Anti Double-Booking & Anti-Looping:** Logika backend mengunci tombol pembelian jika status VIP aktif, dan *greyed-out* slot waktu PT jika kuota maksimum (`maxCapacity`) telah terpenuhi.
 
 ## 🛡 License
 Premium License - Personal and Commercial use for your own SaaS products.

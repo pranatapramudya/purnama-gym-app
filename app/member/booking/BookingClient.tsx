@@ -1,9 +1,10 @@
 "use client";
 
-import { Clock, MapPin, CheckCircle2, AlertTriangle, Loader2, User } from "lucide-react";
-import { useState } from "react";
+import { Clock, MapPin, CheckCircle2, AlertTriangle, Loader2, User, Calendar } from "lucide-react";
+import { useState, useEffect } from "react";
 // We need to call a new server action to book a PT session
 import { bookPTSession } from "@/app/actions/member";
+import { getAvailablePTSlots } from "@/app/actions/pt";
 
 interface PTSlotItem {
   id: string;
@@ -14,15 +15,45 @@ interface PTSlotItem {
   isBooked: boolean;
   price: number;
   trainerName: string;
+  currentBookings: number;
+  maxCapacity: number;
 }
 
 export default function BookingClient({ initialSlots, ptSetting }: { initialSlots: PTSlotItem[], ptSetting: any }) {
   const [toast, setToast] = useState<{message: string, type: 'success' | 'error'} | null>(null);
   const [isLoading, setIsLoading] = useState<string | null>(null);
-  // Optional optimistic UI
   const [slots, setSlots] = useState<PTSlotItem[]>(initialSlots);
-
   const [selectedSlot, setSelectedSlot] = useState<PTSlotItem | null>(null);
+  const [isFetchingSlots, setIsFetchingSlots] = useState(false);
+
+  const formatSlotDate = (targetDateStr: string | null | undefined, fallbackDay: string, uppercase = false) => {
+    if (targetDateStr) {
+      const d = new Date(targetDateStr);
+      const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+      const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+      const formatted = `${uppercase ? "" : days[d.getDay()] + ", "}${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+      return uppercase ? formatted.toUpperCase() : formatted;
+    }
+    return uppercase ? fallbackDay.toUpperCase() : fallbackDay;
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSlots = async () => {
+      setIsFetchingSlots(true);
+      const res = await getAvailablePTSlots();
+      if (isMounted) {
+        if (res.success) {
+          setSlots(res.slots as PTSlotItem[]);
+        } else {
+          showToast(res.error || "Gagal memuat jadwal PT", "error");
+        }
+        setIsFetchingSlots(false);
+      }
+    };
+    fetchSlots();
+    return () => { isMounted = false; };
+  }, []);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -58,69 +89,89 @@ export default function BookingClient({ initialSlots, ptSetting }: { initialSlot
         </div>
       </header>
 
-      {ptSetting?.pricePerSession && (
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500">
-              <AlertTriangle className="w-5 h-5 rotate-180" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tarif Personal Trainer</p>
-              <p className="text-sm font-semibold text-slate-700">Harga per sesi (1 jam) untuk semua jadwal.</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <span className="text-xl font-black text-slate-900">Rp {ptSetting.pricePerSession.toLocaleString("id-ID")}</span>
-          </div>
+
+
+      {isFetchingSlots ? (
+        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+          <Loader2 className="w-8 h-8 animate-spin mb-3 text-emerald-500" />
+          <p className="text-sm font-medium">Memuat jadwal...</p>
+        </div>
+      ) : (
+        <div className="flex flex-col">
+          {slots.length === 0 ? (
+            <p className="col-span-full text-center text-sm text-slate-500 py-8">Belum ada jadwal yang disediakan oleh Admin pada tanggal ini.</p>
+          ) : (
+            slots.map((c) => {
+              const isBooked = c.isBooked;
+              const slotPrice = c.price || 0;
+              const slotDiscount = c.discountPercentage || 0;
+              const slotHasDiscount = slotDiscount > 0;
+              const slotFinalPrice = slotHasDiscount ? slotPrice - (slotPrice * (slotDiscount / 100)) : slotPrice;
+
+              return (
+                <button
+                  key={`${c.id}-${c.targetDate}`}
+                  onClick={() => !isBooked && setSelectedSlot(c)}
+                  disabled={isBooked || isLoading === c.id}
+                  className={`relative flex flex-row justify-between items-center p-4 rounded-2xl shadow-sm border w-full mb-3 transition-all ${
+                    isBooked
+                      ? 'bg-gray-50 border-gray-200 opacity-70 cursor-not-allowed'
+                      : 'bg-white border-gray-100 hover:border-emerald-200 hover:shadow-md active:scale-[0.98] cursor-pointer'
+                  }`}
+                >
+                  {slotHasDiscount && !isBooked && (
+                    <span className="absolute -top-2 -left-2 bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm z-10">
+                      Diskon {slotDiscount}%
+                    </span>
+                  )}
+                  {isLoading === c.id ? (
+                    <div className="flex w-full justify-center py-4">
+                      <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col items-start text-left">
+                        <span className="text-[10px] font-bold tracking-wider text-gray-400 uppercase mb-1">
+                          {formatSlotDate(c.targetDate, c.dayOfWeek, true)}
+                        </span>
+                        <span className={`text-lg font-black ${isBooked ? 'text-gray-500' : 'text-gray-800'}`}>
+                          {c.startTime} - {c.endTime}
+                        </span>
+                        {c.trainerName && (
+                          <span className="text-xs font-medium text-gray-500 mt-1">
+                            Trainer: {c.trainerName}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col items-end text-right">
+                        {slotHasDiscount ? (
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-gray-400 line-through">
+                              IDR {slotPrice.toLocaleString("id-ID")}
+                            </span>
+                            <span className={`text-lg font-extrabold ${isBooked ? 'text-gray-400' : 'text-emerald-600'}`}>
+                              IDR {slotFinalPrice.toLocaleString("id-ID")}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className={`text-lg font-extrabold ${isBooked ? 'text-gray-400' : 'text-emerald-600'}`}>
+                            IDR {slotFinalPrice.toLocaleString("id-ID")}
+                          </span>
+                        )}
+                        
+                        <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-bold border ${isBooked ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                          {isBooked ? "KOUTA PENUH" : `Terisi: ${c.currentBookings}/${c.maxCapacity} Orang`}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </button>
+              );
+            })
+          )}
         </div>
       )}
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {slots.length === 0 ? (
-          <p className="col-span-full text-center text-sm text-slate-500 py-8">Belum ada jadwal yang disediakan oleh Admin saat ini.</p>
-        ) : (
-          slots.map((c) => {
-            const isBooked = c.isBooked;
-            return (
-              <button
-                key={`${c.id}-${c.targetDate}`}
-                onClick={() => !isBooked && setSelectedSlot(c)}
-                disabled={isBooked || isLoading === c.id}
-                className={`relative flex flex-col items-center justify-center p-4 min-h-[100px] rounded-2xl transition-all ${
-                  isBooked
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-emerald-500 text-white hover:bg-emerald-600 hover:shadow-md active:scale-[0.97] cursor-pointer'
-                }`}
-              >
-                {isLoading === c.id ? (
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                ) : (
-                  <>
-                    <span className="text-xs font-semibold mb-1 opacity-90 uppercase tracking-wider">
-                      {c.dayOfWeek}
-                    </span>
-                    <span className="text-base font-extrabold tracking-tight">
-                      {c.startTime} - {c.endTime}
-                    </span>
-                    
-                    {c.trainerName && (
-                      <span className={`text-[11px] font-medium mt-1 truncate w-full text-center px-2 ${isBooked ? 'text-gray-400' : 'text-emerald-100'}`}>
-                        {c.trainerName}
-                      </span>
-                    )}
-
-                    {isBooked && (
-                      <span className="mt-2 text-[10px] font-bold uppercase tracking-wider bg-white/50 px-2 py-0.5 rounded-md">
-                        Penuh
-                      </span>
-                    )}
-                  </>
-                )}
-              </button>
-            );
-          })
-        )}
-      </div>
 
       {selectedSlot && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4 sm:p-0 transition-opacity">
@@ -137,7 +188,10 @@ export default function BookingClient({ initialSlots, ptSetting }: { initialSlot
             <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-6 space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500 font-medium">Jadwal</span>
-                <span className="font-bold text-slate-900">{selectedSlot.dayOfWeek}, {selectedSlot.startTime} - {selectedSlot.endTime}</span>
+                <span className="font-bold text-slate-900 text-right">
+                  {formatSlotDate(selectedSlot.targetDate, selectedSlot.dayOfWeek, false)}<br/>
+                  <span className="text-emerald-600">{selectedSlot.startTime} - {selectedSlot.endTime}</span>
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500 font-medium">Trainer</span>
@@ -145,7 +199,14 @@ export default function BookingClient({ initialSlots, ptSetting }: { initialSlot
               </div>
               <div className="flex justify-between items-center text-sm pt-3 border-t border-slate-200/80">
                 <span className="text-slate-500 font-medium">Total Tagihan</span>
-                <span className="font-extrabold text-slate-900">Rp {(ptSetting?.pricePerSession || 100000).toLocaleString("id-ID")}</span>
+                <span className="font-extrabold text-slate-900">
+                  {(() => {
+                    const price = selectedSlot.price || 0;
+                    const discount = selectedSlot.discountPercentage || 0;
+                    const finalCheckoutPrice = discount > 0 ? price - (price * (discount / 100)) : price;
+                    return `IDR ${finalCheckoutPrice.toLocaleString("id-ID")}`;
+                  })()}
+                </span>
               </div>
             </div>
 

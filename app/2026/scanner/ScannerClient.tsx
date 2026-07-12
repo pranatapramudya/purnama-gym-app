@@ -78,11 +78,16 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
     const cleanText = text.trim();
     if (!cleanText) return;
 
+    // Extract ID if the scanned text is a URL
+    const extractedId = cleanText.includes("/verify/") 
+      ? cleanText.split("/verify/")[1].split("?")[0].replace(/\/$/, "") 
+      : cleanText;
+
     isProcessingRef.current = true;
     setIsScanning(true);
-    setUserIdInput(cleanText);
+    setUserIdInput(extractedId);
 
-    const res = await processQRCheckIn(cleanText);
+    const res = await processQRCheckIn(extractedId);
     setIsScanning(false);
 
     if (res.success && res.data) {
@@ -96,9 +101,6 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
         showToast(`Check-out berhasil: ${data.name}`, "success");
       } else {
         showToast(`Check-in berhasil: ${data.name}`, "success");
-        if (data.hasPTSession) {
-          setTimeout(() => showToast(`Pemberitahuan: ${data.name} memiliki sesi PT hari ini!`, "success"), 500);
-        }
       }
     } else {
       if (res.error === "KADALUARSA") {
@@ -106,13 +108,17 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
         setLastScan(null);
       } else {
         showToast(res.error || "Gagal check-in", "error");
+        setTimeout(() => {
+          isProcessingRef.current = false;
+        }, 2500);
       }
     }
+  };
 
-    // Delay before allowing next scan to prevent duplicate hits
-    setTimeout(() => {
-      isProcessingRef.current = false;
-    }, 2500);
+  const handleCloseModal = () => {
+    setLastScan(null);
+    setExpiredUserId(null);
+    isProcessingRef.current = false;
   };
 
   const handleScanSubmit = (e: React.FormEvent) => {
@@ -206,43 +212,50 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
             </div>
           )}
 
-          {/* Last Scan Result */}
+          {/* Last Scan Result Modal */}
           {lastScan && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm animate-[fadeUp_0.3s_ease-out]">
-              <style>{`
-                @keyframes fadeUp {
-                  from { opacity: 0; transform: translateY(0.5rem); }
-                  to   { opacity: 1; transform: translateY(0); }
-                }
-              `}</style>
-              <div className="flex items-center gap-2 mb-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                <h3 className="text-sm font-bold text-emerald-700">
-                  {lastScan.status === "checkout" ? "Check-out Berhasil!" : "Check-in Berhasil!"}
-                </h3>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold shadow-sm">
-                  {lastScan.name.charAt(0)}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className={`p-6 text-center text-white ${lastScan.role === "MEMBER" ? 'bg-gradient-to-br from-amber-400 to-amber-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'}`}>
+                  <div className="w-20 h-20 mx-auto rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md mb-4 shadow-inner border border-white/30">
+                    <CheckCircle2 className="w-10 h-10 text-white drop-shadow-md" />
+                  </div>
+                  <h3 className="text-2xl font-black tracking-tight mb-1">
+                    {lastScan.status === "checkout" ? "Check-out Berhasil!" : "Check-in Berhasil!"}
+                  </h3>
+                  <p className="text-white/80 text-sm font-medium">Data kehadiran tercatat di sistem.</p>
                 </div>
-                <div className="flex-1">
-                  <p className="font-bold text-slate-900">{lastScan.name}</p>
-                  <p className="text-[11px] font-mono font-bold text-slate-600 tracking-wider my-0.5">
-                    {lastScan.shortId || "ID NOT SET"}
-                  </p>
-                  {lastScan.hasPTSession && (
-                    <p className="text-[10px] font-bold text-emerald-600 mt-1 bg-emerald-50 px-2 py-0.5 rounded-full inline-block">
-                      📋 Ada Sesi PT Hari Ini
-                    </p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    lastScan.role === "MEMBER" ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
-                  }`}>
-                    {lastScan.role === "MEMBER" ? "VIP" : "Regular"}
-                  </span>
-                  <p className="text-[10px] text-slate-500 mt-1">{lastScan.time}</p>
+                
+                <div className="p-6">
+                  <div className="text-center mb-6">
+                    <p className="text-[11px] font-bold text-slate-400 tracking-widest uppercase mb-1">BIODATA MEMBER</p>
+                    <h4 className="text-2xl font-extrabold text-slate-900">{lastScan.name}</h4>
+                    <p className="text-sm font-mono font-bold text-slate-500 mt-1">{lastScan.shortId || "ID NOT SET"}</p>
+                    
+                    <div className="mt-3 inline-flex items-center justify-center">
+                      <span className={`px-4 py-1 rounded-full text-xs font-black uppercase tracking-wider border-2 ${
+                        lastScan.role === "MEMBER" 
+                          ? "bg-amber-50 text-amber-600 border-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.2)]" 
+                          : "bg-blue-50 text-blue-600 border-blue-200"
+                      }`}>
+                        {lastScan.role === "MEMBER" ? "VIP MEMBER" : "REGULAR MEMBER"}
+                      </span>
+                    </div>
+
+                    {lastScan.hasPTSession && (
+                      <div className="mt-4 p-3 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-center gap-2 text-emerald-700">
+                        <span className="text-lg">📋</span>
+                        <span className="text-sm font-bold">Jadwal PT Hari Ini</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button 
+                    onClick={handleCloseModal}
+                    className="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-slate-900/20"
+                  >
+                    Tutup & Scan Lagi
+                  </button>
                 </div>
               </div>
             </div>

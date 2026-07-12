@@ -15,7 +15,7 @@ export default async function ProfilePage() {
     where: { clerkUserId: clerkUser.id }
   });
 
-  const memberId = user ? `M-${user.id.substring(user.id.length - 4).toUpperCase()}` : "Guest";
+  const memberId = user ? (user.shortId || `M-${user.id.substring(user.id.length - 4).toUpperCase()}`) : "Guest";
   const roleDisplay = user?.role === "MEMBER" ? "VIP Member" : user?.role === "ADMIN_KASIR" ? "Admin" : "Regular Member";
 
   return (

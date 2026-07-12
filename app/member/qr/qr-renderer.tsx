@@ -11,7 +11,7 @@ export function QRRenderer({ userId }: QRRendererProps) {
   const [baseUrl, setBaseUrl] = useState<string>("");
 
   useEffect(() => {
-    setBaseUrl(process.env.NEXT_PUBLIC_BASE_URL || window.location.origin);
+    setBaseUrl(process.env.NEXT_PUBLIC_APP_URL || window.location.origin);
   }, []);
 
   if (!baseUrl || !userId) {

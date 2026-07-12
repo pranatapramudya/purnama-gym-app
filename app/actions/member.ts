@@ -150,8 +150,23 @@ export async function bookPTSession(slotId: string, scheduleIso: string, method:
     const slot = await prisma.pTScheduleSlot.findUnique({ where: { id: slotId } });
     if (!slot) throw new Error("Slot tidak ditemukan.");
 
-    const ptSetting = await prisma.pTSetting.findFirst();
-    const price = ptSetting?.pricePerSession || 100000;
+    let price = slot.price;
+    if (slot.discountPercentage && slot.discountPercentage > 0) {
+      price = price - (price * (slot.discountPercentage / 100));
+    }
+
+    const bookedCount = await prisma.pTSession.count({
+      where: {
+        schedule: new Date(scheduleIso),
+        status: { in: ["PENDING", "CONFIRMED", "ONGOING"] },
+        trainerId: slot.trainerId,
+        trainerName: slot.trainerName
+      }
+    });
+
+    if (bookedCount >= slot.maxCapacity) {
+      throw new Error("Mohon maaf, slot ini baru saja penuh.");
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.pTSession.create({

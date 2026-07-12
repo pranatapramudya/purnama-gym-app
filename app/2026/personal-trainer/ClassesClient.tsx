@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AdminToast, ToastType } from "@/components/admin/AdminToast";
 import { CheckCircle2, Play, CheckSquare, Loader2, CalendarClock, Clock, Trash2 } from "lucide-react";
 import { confirmPTSession, startPTSession, finishPTSession } from "@/app/actions/admin";
@@ -20,21 +20,15 @@ interface PTSessionItem {
   status: string; // PENDING, CONFIRMED, ONGOING, COMPLETED
 }
 
-interface PTSettingItem {
-  pricePerSession: number;
-  availableDays: string[];
-  startTime: string;
-  endTime: string;
-}
-
 interface PTScheduleSlotItem {
   id: string;
   dayOfWeek: string;
+  targetDate?: Date | string | null;
   startTime: string;
   endTime: string;
-  trainerId?: string | null;
-  trainerName?: string | null;
-  trainer?: { name: string | null } | null;
+  trainerId: string | null;
+  trainerName: string | null;
+  trainer: { name: string | null } | null;
   maxCapacity: number;
 }
 
@@ -58,20 +52,16 @@ export default function ClassesClient({
   // Tabs: "JADWAL" | "PENGATURAN"
   const [activeTab, setActiveTab] = useState<"JADWAL" | "PENGATURAN">("JADWAL");
 
-  // Settings form state
-  const [setPrice, setSetPrice] = useState(ptSetting?.pricePerSession || 100000);
-  const [setDays, setSetDays] = useState<string[]>(ptSetting?.availableDays || ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]);
-  const [setStartTime, setSetStartTime] = useState(ptSetting?.startTime || "08:00");
-  const [setEndTime, setSetEndTime] = useState(ptSetting?.endTime || "20:00");
-  const [isSavingSetting, setIsSavingSetting] = useState(false);
-
   // Slots CRUD state
   const [slots, setSlots] = useState<PTScheduleSlotItem[]>(initialSlots);
-  const [slotDay, setSlotDay] = useState("Senin");
+  const todayStr = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split("T")[0];
+  const [slotDate, setSlotDate] = useState(todayStr);
   const [slotStart, setSlotStart] = useState("");
   const [slotEnd, setSlotEnd] = useState("");
   const [slotTrainerInput, setSlotTrainerInput] = useState("");
   const [slotMaxCapacity, setSlotMaxCapacity] = useState(1);
+  const [slotPrice, setSlotPrice] = useState<number | string>(100000);
+  const [slotDiscount, setSlotDiscount] = useState<number | string>(0);
   const [isAddingSlot, setIsAddingSlot] = useState(false);
 
   const showToast = (message: string, type: ToastType = "success") => {
@@ -114,31 +104,6 @@ export default function ClassesClient({
     }
   };
 
-  const handleSaveSetting = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingSetting(true);
-    const { updatePTSetting } = await import("@/app/actions/admin");
-    const res = await updatePTSetting({
-      pricePerSession: Number(setPrice),
-      availableDays: setDays,
-      startTime: setStartTime,
-      endTime: setEndTime
-    });
-    setIsSavingSetting(false);
-    if (res.success) {
-      showToast("Pengaturan PT berhasil disimpan.", "success");
-    } else {
-      showToast(res.error || "Gagal menyimpan pengaturan", "error");
-    }
-  };
-
-  const toggleDay = (day: string) => {
-    if (setDays.includes(day)) {
-      setSetDays(setDays.filter(d => d !== day));
-    } else {
-      setSetDays([...setDays, day]);
-    }
-  };
 
   const handleAddSlot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +113,21 @@ export default function ClassesClient({
     }
     setIsAddingSlot(true);
     const { createPTScheduleSlot } = await import("@/app/actions/admin");
-    const res = await createPTScheduleSlot({ dayOfWeek: slotDay, startTime: slotStart, endTime: slotEnd, trainerInput: slotTrainerInput || undefined, maxCapacity: slotMaxCapacity });
+    
+    const dateObj = new Date(slotDate);
+    const dayMap: Record<number, string> = { 0: "Minggu", 1: "Senin", 2: "Selasa", 3: "Rabu", 4: "Kamis", 5: "Jumat", 6: "Sabtu" };
+    const calculatedDay = dayMap[dateObj.getDay()];
+
+    const res = await createPTScheduleSlot({ 
+      dayOfWeek: calculatedDay, 
+      targetDate: slotDate, 
+      startTime: slotStart, 
+      endTime: slotEnd, 
+      trainerInput: slotTrainerInput || undefined, 
+      maxCapacity: slotMaxCapacity,
+      price: Number(slotPrice) || 0,
+      discountPercentage: Number(slotDiscount) || 0
+    });
     setIsAddingSlot(false);
     if (res.success) {
       showToast("Slot berhasil ditambahkan.", "success");
@@ -156,17 +135,22 @@ export default function ClassesClient({
       const trainerObj = trainers.find(t => t.name === slotTrainerInput || t.id === slotTrainerInput);
       setSlots([...slots, { 
         id: Date.now().toString(), 
-        dayOfWeek: slotDay, 
+        dayOfWeek: calculatedDay, 
+        targetDate: slotDate,
         startTime: slotStart, 
         endTime: slotEnd,
         trainerId: trainerObj ? trainerObj.id : null,
         trainerName: !trainerObj ? slotTrainerInput : null,
         trainer: trainerObj ? { name: trainerObj.name } : null,
-        maxCapacity: slotMaxCapacity
-      }]);
+        maxCapacity: slotMaxCapacity,
+        price: Number(slotPrice) || 0,
+        discountPercentage: Number(slotDiscount) || 0
+      } as PTScheduleSlotItem]);
       setSlotStart("");
       setSlotEnd("");
       setSlotMaxCapacity(1);
+      setSlotPrice(100000);
+      setSlotDiscount(0);
     } else {
       showToast(res.error || "Gagal menambah slot", "error");
     }
@@ -302,144 +286,50 @@ export default function ClassesClient({
       )}
 
       {activeTab === "PENGATURAN" && userRole === "SUPER_ADMIN" ? (
-        <div className="max-w-2xl bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-slate-900 mb-6">Pengaturan Master Ketersediaan & Harga PT</h2>
-          <form onSubmit={handleSaveSetting} className="space-y-6">
-            
-            {/* Price */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Harga Per Sesi (1 Jam)</label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-500 font-semibold text-sm">Rp</span>
-                <input 
-                  type="text" 
-                  value={setPrice ? setPrice.toLocaleString("id-ID") : ""} 
-                  onChange={e => {
-                    const val = Number(e.target.value.replace(/\D/g, ''));
-                    setSetPrice(val);
-                  }}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all appearance-none"
-                />
-              </div>
-            </div>
-
-            {/* Days */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Hari Operasional PT</label>
-              <div className="flex flex-wrap gap-2">
-                {["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map(day => (
-                  <button
-                    key={day}
-                    type="button"
-                    onClick={() => toggleDay(day)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-bold border transition-colors ${
-                      setDays.includes(day)
-                        ? "bg-emerald-50 border-emerald-500 text-emerald-700"
-                        : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                    }`}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Time */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Jam Buka Sesi</label>
-                <input 
-                  type="time" 
-                  value={setStartTime} 
-                  onChange={e => setSetStartTime(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Jam Tutup Sesi</label>
-                <input 
-                  type="time" 
-                  value={setEndTime} 
-                  onChange={e => setSetEndTime(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-100">
-              <button 
-                type="submit" 
-                disabled={isSavingSetting}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 text-white font-bold rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50"
-              >
-                {isSavingSetting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Simpan Pengaturan"}
-              </button>
-            </div>
-          </form>
-
+        <div className="max-w-4xl bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
           {/* Master Schedule Slots CRUD */}
-          <div className="mt-10 pt-10 border-t border-slate-200">
+          <div>
             <h2 className="text-lg font-bold text-slate-900 mb-6">Kelola Slot Jadwal PT</h2>
             
             <form onSubmit={handleAddSlot} className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 items-end">
               <div className="w-full md:col-span-5 mb-2">
-                <label className="block text-xs font-bold text-slate-700 mb-3">Pilih Hari</label>
-                <div className="flex flex-wrap gap-2">
-                  {["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map(d => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setSlotDay(d)}
-                      className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border shadow-sm ${
-                        slotDay === d 
-                        ? 'bg-emerald-500 text-white border-emerald-500 ring-2 ring-emerald-500/20' 
-                        : 'bg-white text-slate-600 border-slate-300 hover:border-emerald-400 hover:bg-emerald-50 active:scale-95'
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
+                <label className="block text-xs font-bold text-slate-700 mb-3">Pilih Tanggal</label>
+                <input 
+                  type="date"
+                  value={slotDate}
+                  min={todayStr}
+                  onChange={e => setSlotDate(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                />
               </div>
               
               <div className="w-full">
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Mulai</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Clock className="h-4 w-4 text-slate-400" />
-                  </div>
-                  <select 
-                    value={slotStart} 
-                    onChange={e => setSlotStart(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none cursor-pointer"
-                  >
-                    {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
+                <input 
+                  type="time" 
+                  value={slotStart} 
+                  onChange={e => setSlotStart(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all"
+                />
               </div>
-
               <div className="w-full">
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Selesai</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <Clock className="h-4 w-4 text-slate-400" />
-                  </div>
-                  <select 
-                    value={slotEnd} 
-                    onChange={e => setSlotEnd(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none cursor-pointer"
-                  >
-                    {timeOptions.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
+                <input 
+                  type="time" 
+                  value={slotEnd} 
+                  onChange={e => setSlotEnd(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all"
+                />
               </div>
+              
               <div className="w-full">
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Maksimal Member (Kuota)</label>
                 <input 
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={slotMaxCapacity} 
-                  onChange={e => setSlotMaxCapacity(Number(e.target.value))}
+                  onChange={e => setSlotMaxCapacity(Number(e.target.value.replace(/\D/g, '')))}
                   className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
               </div>
@@ -450,6 +340,37 @@ export default function ClassesClient({
                   placeholder="Ketik nama trainer..."
                   value={slotTrainerInput} 
                   onChange={e => setSlotTrainerInput(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                />
+              </div>
+              <div className="w-full">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Harga</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-2.5 text-slate-500 font-semibold text-sm">IDR</span>
+                  <input 
+                    type="text"
+                    inputMode="numeric"
+                    value={slotPrice ? Number(slotPrice).toLocaleString('id-ID') : ""} 
+                    onChange={e => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      setSlotPrice(Number(val));
+                    }}
+                    className="w-full pl-11 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+              </div>
+              <div className="w-full">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Diskon (%)</label>
+                <input 
+                  type="text"
+                  inputMode="numeric"
+                  value={slotDiscount} 
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    let num: number | string = val ? Number(val) : "";
+                    if (typeof num === 'number' && num > 100) num = 100;
+                    setSlotDiscount(num);
+                  }}
                   className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
               </div>
@@ -466,10 +387,11 @@ export default function ClassesClient({
               <table className="w-full text-left text-sm text-slate-600">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase text-xs tracking-wider">
                   <tr>
-                    <th className="px-6 py-4">Hari</th>
+                    <th className="px-6 py-4">Tanggal</th>
                     <th className="px-6 py-4">Jam</th>
                     <th className="px-6 py-4">Nama PT</th>
                     <th className="px-6 py-4">KUOTA</th>
+                    <th className="px-6 py-4">HARGA</th>
                     <th className="px-6 py-4 text-right">Aksi</th>
                   </tr>
                 </thead>
@@ -481,35 +403,57 @@ export default function ClassesClient({
                       </td>
                     </tr>
                   ) : (
-                    ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map(day => {
-                      const daySlots = slots.filter(s => s.dayOfWeek === day);
-                      return daySlots.map((s, index) => (
-                        <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4 font-semibold text-slate-900 w-1/4">
-                            {index === 0 ? day : ""}
-                          </td>
-                          <td className="px-6 py-4 w-1/4">
-                            <span className="bg-slate-100 text-slate-700 font-medium px-2 py-1 rounded-md">
-                              {s.startTime} - {s.endTime}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            {s.trainer?.name || s.trainerName || <span className="text-slate-400 italic">Bebas</span>}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="font-semibold text-slate-900">{s.maxCapacity} Orang</span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              onClick={() => handleDeleteSlot(s.id)}
-                              className="text-red-500 hover:text-red-700 font-medium text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
-                            >
-                              Hapus
-                            </button>
-                          </td>
-                        </tr>
-                      ));
-                    })
+                    slots
+                      .sort((a, b) => {
+                        const dateA = a.targetDate ? new Date(a.targetDate).getTime() : 0;
+                        const dateB = b.targetDate ? new Date(b.targetDate).getTime() : 0;
+                        if (dateA !== dateB) return dateA - dateB;
+                        return a.startTime.localeCompare(b.startTime);
+                      })
+                      .map((s) => {
+                        const dateStr = s.targetDate 
+                          ? new Date(s.targetDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
+                          : s.dayOfWeek;
+                        
+                        return (
+                          <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-4 font-semibold text-slate-900 w-1/4">
+                              {dateStr}
+                            </td>
+                            <td className="px-6 py-4 w-1/4">
+                              <span className="bg-slate-100 text-slate-700 font-medium px-2 py-1 rounded-md">
+                                {s.startTime} - {s.endTime}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              {s.trainer?.name || s.trainerName || <span className="text-slate-400 italic">Bebas</span>}
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="font-semibold text-slate-900">{s.maxCapacity} Orang</span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-emerald-600">
+                                  IDR {(s.price - (s.price * ((s.discountPercentage || 0) / 100))).toLocaleString("id-ID")}
+                                </span>
+                                {(s.discountPercentage || 0) > 0 && (
+                                  <span className="text-[10px] text-slate-500 line-through">
+                                    IDR {(s.price || 0).toLocaleString("id-ID")} (Disc {s.discountPercentage}%)
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <button
+                                onClick={() => handleDeleteSlot(s.id)}
+                                className="text-red-500 hover:text-red-700 font-medium text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
+                              >
+                                Hapus
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
                   )}
                 </tbody>
               </table>

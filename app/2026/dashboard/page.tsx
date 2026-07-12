@@ -25,24 +25,27 @@ export default async function AdminDashboard(props: PageProps) {
     redirect("/");
   }
 
-  const now = new Date();
+  // Set explicit timezone for Jakarta (WIB)
+  const jakartaTimeStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
+  const localNow = new Date(jakartaTimeStr);
+  const now = new Date(); // Keep UTC now for generic comparisons
   
-  // Start of Today
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // Create UTC bounds based on Jakarta local date
+  const startOfToday = new Date(Date.UTC(localNow.getFullYear(), localNow.getMonth(), localNow.getDate()));
   
   // Start of Week (assuming Monday as first day of week)
-  const dayOfWeek = now.getDay() || 7; // Convert Sunday(0) to 7
+  const dayOfWeek = localNow.getDay() || 7; // Convert Sunday(0) to 7
   const startOfWeek = new Date(startOfToday);
   startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek + 1);
 
   // Start of Month
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfMonth = new Date(Date.UTC(localNow.getFullYear(), localNow.getMonth(), 1));
 
   // Start of Last Month
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const startOfLastMonth = new Date(Date.UTC(localNow.getFullYear(), localNow.getMonth() - 1, 1));
 
   // Start of Year
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const startOfYear = new Date(Date.UTC(localNow.getFullYear(), 0, 1));
   
   // Earliest date needed for transactions
   const minStart = startOfYear < startOfLastMonth ? startOfYear : startOfLastMonth;
@@ -177,11 +180,32 @@ export default async function AdminDashboard(props: PageProps) {
   }
   else if (filter === "year") dynamicStartDate = startOfYear;
   
+  const idDays = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const currentDayName = idDays[localNow.getDay()];
+  
+  let ptWhereClause: any = {
+    targetDate: { gte: dynamicStartDate, lt: dynamicEndDate },
+  };
+
+  if (filter === "today") {
+    ptWhereClause = {
+      OR: [
+        { targetDate: { gte: dynamicStartDate, lt: dynamicEndDate } },
+        { targetDate: null, dayOfWeek: currentDayName }
+      ]
+    };
+  } else {
+    ptWhereClause = {
+      OR: [
+        { targetDate: { gte: dynamicStartDate, lt: dynamicEndDate } },
+        { targetDate: null }
+      ]
+    };
+  }
+
   // 3. Sesi PT (Dinamis)
-  const classesToday = await prisma.gymClass.count({
-    where: {
-      schedule: { gte: dynamicStartDate, lt: dynamicEndDate },
-    },
+  const classesToday = await prisma.pTScheduleSlot.count({
+    where: ptWhereClause,
   });
 
   // 4. Check-in (Dinamis)

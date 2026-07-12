@@ -81,9 +81,14 @@ Sistem memprioritaskan alur pembayaran manual (QRIS/Tunai) di meja Kasir untuk m
 ### 3. Alur QR Code Check-in & Deteksi Pintar Kehadiran
 Setiap member memiliki "Kartu Digital" bertenaga QR Code yang unik. Admin di meja depan (*Front Desk*) menggunakan menu `/admin/scanner` dengan kamera web bawaan untuk memindai QR Code tersebut. Setelah terpindai sukses, *check-in* dicatat ke dalam rekam jejak kehadiran secara permanen. Modul ini secara cerdas mendeteksi *Check-in* dan *Check-out* di hari yang sama, memberikan Peringatan (Red Alert) jika masa keanggotaan kadaluarsa, dan menampilkan notifikasi sesi PT jika member memiliki jadwal pada hari tersebut.
 
-### 4. Alur Manajemen Sesi Personal Trainer (O2O)
-1. Superadmin (Owner) menyetel Harga, Hari Operasional, serta membuat Slot Waktu (contoh 09:00 - 10:00) yang spesifik dan menugaskan seorang Trainer (`trainerId`) di Master Jadwal.
-2. Member melihat ketersediaan slot melalui aplikasi (slot yang bentrok dengan pemesanan lain akan dinonaktifkan / *greyed-out* via fungsi `getAvailablePTSlots`).
+### 4. Alur Manajemen Sesi Personal Trainer (O2O) & Harga Dinamis (Snapshot Pricing)
+1. Superadmin (Owner) membuat Slot Waktu yang sangat dinamis menggunakan mekanisme **Snapshot Slot Pricing**. Setiap slot memiliki variabel Harga (`price`) dan Diskon (`discountPercentage`) independen yang tertanam langsung pada slot tersebut, meninggalkan pola usang *Global Master Pricing*.
+2. Member melihat ketersediaan slot melalui UI bergaya *Pro Horizontal Card*. Slot yang sudah melampaui kuota maksimum (`maxCapacity`) akan dinonaktifkan / *greyed-out*.
 3. Setelah Member mem-*booking*, status PT Session adalah `PENDING` (menunggu pembayaran disetujui).
-4. Saat pembayaran diverifikasi, status menjadi `CONFIRMED`.
+4. Saat pembayaran diverifikasi oleh Kasir, status menjadi `CONFIRMED`.
 5. Di hari pelaksanaan, Trainer memulai kelas (`ONGOING`), dan menyelesaikannya (`COMPLETED`), mencatat `actualStartTime` dan `actualEndTime` ke database untuk *payroll* atau evaluasi di masa depan.
+
+### 5. Mesin Verifikasi Inti (Core Verification Engine)
+- **Alur QR -> URL -> Scanner -> Biodata Lookup:** Setiap E-Card VIP dan Regular mem-bypass ID bawaan sistem dengan `shortId` atau ID buatan (misal `M-RGAO`).
+- Payload QR Code dikemas dalam format URL (`https://[HOST]/verify/M-RGAO`) sehingga dapat dipindai oleh pemindai eksternal (mengarahkan ke *browser*) ATAU pemindai internal Admin (`/admin/scanner`).
+- Pemindai Internal secara otomatis mengekstraksi kode ID dari URL, melakukan kueri ke *database* (`endsWith` *fallback* untuk toleransi ketiadaan `shortId`), dan menahan pemindai untuk menampilkan **Kartu Biodata Modal** secara penuh, sebelum dilanjutkan ke pemindaian berikutnya.

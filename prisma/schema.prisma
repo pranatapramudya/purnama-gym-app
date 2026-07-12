@@ -144,22 +144,27 @@ model PTSession {
 }
 
 model PTSetting {
-  id              String   @id @default(cuid())
-  pricePerSession Int      @default(0)
-  availableDays   String[] @default(["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"])
+  id                 String   @id @default(cuid())
+  pricePerSession    Int      @default(0)
+  discountPercentage Int?     @default(0)
+  availableDays      String[] @default(["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"])
   startTime       String   @default("08:00")
   endTime         String   @default("20:00")
   updatedAt       DateTime @updatedAt
 }
 
 model PTScheduleSlot {
-  id        String   @id @default(cuid())
-  dayOfWeek String
-  startTime String
-  endTime   String
-  trainerId String?
-  trainerName String?
-  trainer   User?    @relation("ptScheduleTrainer", fields: [trainerId], references: [id])
-  createdAt DateTime @default(now())
-  maxCapacity Int    @default(1)
+  id                 String      @id @default(cuid())
+  dayOfWeek          String
+  targetDate         DateTime?
+  startTime          String
+  endTime            String
+  trainerId          String?
+  trainerName        String?
+  trainer            User?       @relation("ptScheduleTrainer", fields: [trainerId], references: [id])
+  maxCapacity        Int         @default(1)
+  price              Int         @default(0)
+  discountPercentage Int         @default(0)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @default(now()) @updatedAt
 }

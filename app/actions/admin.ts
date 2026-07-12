@@ -274,11 +274,14 @@ export async function processQRCheckIn(userId: string) {
   try {
     await verifyAdmin();
 
+    const searchId = userId.includes("-") ? userId.split("-")[1] : userId;
+
     const user = await prisma.user.findFirst({
       where: {
         OR: [
           { shortId: userId },
-          { id: userId }
+          { id: userId },
+          { id: { endsWith: searchId } }
         ]
       }
     });
@@ -573,7 +576,7 @@ export async function createManualTransaction(data: {
   }
 }
 
-export async function updatePTSetting(data: { pricePerSession: string | number; availableDays: string[]; startTime: string; endTime: string }) {
+export async function updatePTSetting(data: { pricePerSession: string | number; discountPercentage?: string | number | null; }) {
   await verifyAdmin(); // Or we could verify Superadmin, but currently our check is admin
 
   // Verify superadmin for this specific action
@@ -597,24 +600,29 @@ export async function updatePTSetting(data: { pricePerSession: string | number; 
       parsedPrice = data.pricePerSession || 0;
     }
 
+    let parsedDiscount = 0;
+    if (data.discountPercentage !== undefined && data.discountPercentage !== null && data.discountPercentage !== "") {
+      if (typeof data.discountPercentage === 'string') {
+        parsedDiscount = parseInt(data.discountPercentage.replace(/\D/g, ''), 10) || 0;
+      } else {
+        parsedDiscount = Number(data.discountPercentage) || 0;
+      }
+    }
+
     const existing = await prisma.pTSetting.findFirst();
     if (existing) {
       await prisma.pTSetting.update({
         where: { id: existing.id },
         data: {
           pricePerSession: parsedPrice,
-          availableDays: data.availableDays,
-          startTime: data.startTime,
-          endTime: data.endTime
+          discountPercentage: parsedDiscount,
         }
       });
     } else {
       await prisma.pTSetting.create({
         data: {
           pricePerSession: parsedPrice,
-          availableDays: data.availableDays,
-          startTime: data.startTime,
-          endTime: data.endTime
+          discountPercentage: parsedDiscount,
         }
       });
     }
@@ -629,10 +637,13 @@ export async function createPTScheduleSlot(data: {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
+  targetDate?: string;
   trainerId?: string | number | null;
   trainerName?: string | null;
   trainerInput?: string;
   maxCapacity?: number;
+  price?: number;
+  discountPercentage?: number;
 }) {
   await verifyAdmin();
   try {
@@ -664,11 +675,14 @@ export async function createPTScheduleSlot(data: {
     await prisma.pTScheduleSlot.create({
       data: {
         dayOfWeek: data.dayOfWeek,
+        targetDate: data.targetDate ? new Date(data.targetDate) : null,
         startTime: data.startTime,
         endTime: data.endTime,
         trainerId: finalTrainerId,
         trainerName: finalTrainerName,
-        maxCapacity: data.maxCapacity ?? 1
+        maxCapacity: data.maxCapacity ?? 1,
+        price: data.price ?? 100000,
+        discountPercentage: data.discountPercentage ?? 0
       }
     });
     revalidatePath("/2026/personal-trainer");
