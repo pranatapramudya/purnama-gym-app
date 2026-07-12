@@ -23,12 +23,12 @@ export default async function MemberLayout({
 
     if (!dbUser) {
       const { redirect } = await import("next/navigation");
-      redirect("/auth-sync");
+      return redirect("/auth-sync");
     }
 
     if (dbUser.role === "ADMIN_KASIR" || dbUser.role === "SUPER_ADMIN") {
       const { redirect } = await import("next/navigation");
-      redirect("/2026/dashboard");
+      return redirect("/2026/dashboard");
     }
 
     const headersList = await headers();
@@ -36,7 +36,7 @@ export default async function MemberLayout({
 
     if ((!dbUser?.phoneNumber || !dbUser?.address) && !pathname.includes("/onboarding")) {
       const { redirect } = await import("next/navigation");
-      redirect("/member/onboarding");
+      return redirect("/member/onboarding");
     }
   }
 
