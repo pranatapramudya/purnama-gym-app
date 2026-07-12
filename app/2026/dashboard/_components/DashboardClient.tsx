@@ -185,7 +185,7 @@ export default function DashboardClient({
             </button>
           </div>
           
-          {(userRole === 'super_admin' || userRole === 'admin') && (
+          {userRole === 'super_admin' && (
             <Link
               href={`/api/export?filter=${revenueFilter}`}
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"

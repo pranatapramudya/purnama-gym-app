@@ -36,64 +36,120 @@ export async function GET(request: Request) {
       startDate = startOfYear;
     }
 
-    const transactions = await prisma.transaction.findMany({
+    // 1. Sheet 1: Ringkasan / Stats
+    const totalCheckIns = await prisma.checkIn.count({
       where: {
-        status: "SUCCESS",
+        timestamp: {
+          gte: startDate,
+          lt: endDate
+        }
+      }
+    });
+
+    const activeMembers = await prisma.user.count({
+      where: {
+        role: "MEMBER",
+        endDate: {
+          gte: now
+        }
+      }
+    });
+
+    const ptSessions = await prisma.pTSession.count({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lt: endDate
+        }
+      }
+    });
+
+    // 2. Sheet 2: Arus Kas
+    const cashFlows = await prisma.cashFlow.findMany({
+      where: {
         createdAt: {
           gte: startDate,
           lt: endDate
         }
       },
-      include: {
-        user: true
+      include: { admin: { select: { name: true } } },
+      orderBy: { createdAt: "desc" }
+    });
+
+    // 3. Sheet 3: Data Kunjungan
+    const checkIns = await prisma.checkIn.findMany({
+      where: {
+        timestamp: {
+          gte: startDate,
+          lt: endDate
+        }
       },
-      orderBy: {
-        createdAt: "desc"
-      }
+      include: { user: { select: { name: true } } },
+      orderBy: { timestamp: "desc" }
     });
 
     const wb = xlsx.utils.book_new();
 
-    const formatData = (txs: any[]) => txs.map(tx => {
-      const date = tx.createdAt.toISOString().split('T')[0];
-      const time = tx.createdAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-      return {
-        "ID": tx.id,
-        "Nama Member": tx.user.name || 'Unknown',
-        "Tanggal": `${date} ${time}`,
-        "Jenis": tx.type,
-        "Metode": tx.method,
-        "Total Pendapatan": tx.amount
-      };
-    });
-
-    const createSheet = (data: any[], sheetName: string) => {
+    const createSheet = (data: any[], sheetName: string, colWidths: {wch: number}[], currencyColIndex?: number) => {
       const ws = xlsx.utils.json_to_sheet(data);
-      
-      // Auto-width columns
-      const colWidths = [
-        { wch: 30 }, // ID
-        { wch: 25 }, // Nama Member
-        { wch: 20 }, // Tanggal
-        { wch: 15 }, // Jenis
-        { wch: 15 }, // Metode
-        { wch: 20 }, // Total Pendapatan
-      ];
       ws['!cols'] = colWidths;
-
+      
+      if (currencyColIndex !== undefined && ws['!ref']) {
+        const range = xlsx.utils.decode_range(ws['!ref']);
+        for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+          const cellAddress = xlsx.utils.encode_cell({ r: R, c: currencyColIndex });
+          if (ws[cellAddress]) {
+            ws[cellAddress].z = '"Rp"#,##0.00';
+          }
+        }
+      }
+      
       xlsx.utils.book_append_sheet(wb, ws, sheetName);
     };
 
-    // Sheet 1: Semua Transaksi
-    createSheet(formatData(transactions), "Semua Transaksi");
+    // Prepare Sheet 1
+    const summaryData = [
+      { "METRIK": "Total Check-in", "NILAI": totalCheckIns },
+      { "METRIK": "Member Aktif Saat Ini", "NILAI": activeMembers },
+      { "METRIK": "Sesi PT Baru", "NILAI": ptSessions },
+    ];
+    createSheet(summaryData, "Ringkasan", [{ wch: 30 }, { wch: 15 }]);
 
-    // Sheet 2: Pemasukan Member
-    const memberTxs = transactions.filter(t => t.type === "MEMBERSHIP");
-    createSheet(formatData(memberTxs), "Pemasukan Member");
+    // Prepare Sheet 2
+    const cashFlowData = cashFlows.map(cf => {
+      // Use local timezone formatting correctly
+      const date = new Date(cf.createdAt.getTime() - (cf.createdAt.getTimezoneOffset() * 60000));
+      return {
+        "ID": cf.id,
+        "TANGGAL": date.toISOString().split('T')[0] + " " + date.toISOString().split('T')[1].substring(0, 5),
+        "TIPE": cf.type === 'INCOME' ? 'Pemasukan' : 'Pengeluaran',
+        "NOMINAL": cf.amount,
+        "KETERANGAN": cf.description,
+        "KASIR": cf.admin?.name || 'Unknown'
+      };
+    });
+    // colIndex for NOMINAL is 3
+    createSheet(cashFlowData, "Arus Kas", [{ wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 25 }], 3);
 
-    // Sheet 3: Pembayaran PT
-    const ptTxs = transactions.filter(t => t.type === "PT_SESSION");
-    createSheet(formatData(ptTxs), "Pembayaran PT");
+    // Prepare Sheet 3
+    const checkInData = checkIns.map(ci => {
+      const dateIn = new Date(ci.timestamp.getTime() - (ci.timestamp.getTimezoneOffset() * 60000));
+      const timeInStr = dateIn.toISOString().split('T')[0] + " " + dateIn.toISOString().split('T')[1].substring(0, 5);
+      
+      let timeOutStr = "-";
+      if (ci.checkOutTime) {
+        const dateOut = new Date(ci.checkOutTime.getTime() - (ci.checkOutTime.getTimezoneOffset() * 60000));
+        timeOutStr = dateOut.toISOString().split('T')[0] + " " + dateOut.toISOString().split('T')[1].substring(0, 5);
+      }
+
+      return {
+        "ID": ci.id,
+        "NAMA MEMBER": ci.user?.name || 'Unknown',
+        "WAKTU MASUK": timeInStr,
+        "WAKTU KELUAR": timeOutStr
+      };
+    });
+    createSheet(checkInData, "Data Kunjungan", [{ wch: 30 }, { wch: 30 }, { wch: 20 }, { wch: 20 }]);
 
     // Convert to buffer
     const buf = xlsx.write(wb, { type: "buffer", bookType: "xlsx" });
@@ -102,7 +158,7 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": 'attachment; filename="Laporan_Purnama_Gym.xlsx"'
+        "Content-Disposition": 'attachment; filename="Master_Laporan_Purnama_Gym.xlsx"'
       }
     });
   } catch (error) {

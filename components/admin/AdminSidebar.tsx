@@ -16,7 +16,8 @@ import {
   Package,
   BookOpen,
   UserCog,
-  BarChart3
+  BarChart3,
+  Banknote
 } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/2026/packages", label: "Paket VIP", icon: Package, roles: ["super_admin"] },
   { href: "/2026/guides", label: "Panduan Pemula", icon: BookOpen, roles: ["super_admin"] },
   { href: "/2026/staff", label: "Manajemen Karyawan", icon: UserCog, roles: ["super_admin"] },
+  { href: "/2026/kasir", label: "Buku Kas", icon: Banknote, roles: ["admin_kasir", "super_admin"] },
 ];
 
 interface AdminSidebarProps {

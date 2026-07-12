@@ -8,6 +8,7 @@ type PageProps = {
 
 export default async function MembersPage(props: PageProps) {
   const users = await prisma.user.findMany({
+    where: { role: "MEMBER" },
     orderBy: { createdAt: "desc" },
   });
 
