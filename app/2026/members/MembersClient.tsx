@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/admin/DataTable";
 import { AdminToast } from "@/components/admin/AdminToast";
-import { Search, UserPlus, MoreHorizontal, Shield, Crown, X, Loader2, Plus } from "lucide-react";
+import { Search, UserPlus, MoreHorizontal, Shield, Crown, X, Loader2, Plus, Trash2 } from "lucide-react";
 import { updateMembership } from "@/app/actions/admin";
 import { Role } from "@prisma/client";
+import { useResponsivePagination } from "@/hooks/useResponsivePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface Member {
   id: string;
@@ -30,6 +32,9 @@ export default function MembersClient({
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: "success" | "error" }>({ visible: false, message: "", type: "success" });
   const [editModal, setEditModal] = useState<Member | null>(null);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // States for edit form
   const [editName, setEditName] = useState("");
@@ -89,6 +94,12 @@ export default function MembersClient({
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       m.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const { currentPage, totalPages, setCurrentPage, paginatedData } = useResponsivePagination(filteredMembers);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, setCurrentPage]);
 
   const handleEditProfile = (member: Member) => {
     setEditModal(member);
@@ -159,14 +170,12 @@ export default function MembersClient({
     {
       key: "name",
       label: "Nama",
-      render: (item: Member) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
-            {item.name.charAt(0)}
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900 text-sm">{item.name}</p>
-            <p className="text-xs text-slate-500">{item.email}</p>
+      render: (item: Member, index: number) => (
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-slate-400 font-bold text-sm w-5 text-right shrink-0">#{index + 1}</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-slate-900 text-sm break-words whitespace-normal">{item.name}</p>
+            <p className="text-xs text-slate-500 break-words whitespace-normal">{item.email}</p>
           </div>
         </div>
       ),
@@ -217,13 +226,40 @@ export default function MembersClient({
       label: "Aksi",
       className: "text-right",
       render: (item: Member) => (
-        <div className="flex justify-end">
+        <div className="relative flex justify-end">
           <button
-            onClick={() => handleEditProfile(item)}
+            onClick={() => setActiveDropdown(activeDropdown === item.id ? null : item.id)}
             className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
           >
             <MoreHorizontal className="w-4 h-4" />
           </button>
+          
+          {activeDropdown === item.id && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setActiveDropdown(null)} />
+              <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in zoom-in-95">
+                <button
+                  onClick={() => {
+                    setActiveDropdown(null);
+                    handleEditProfile(item);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-semibold transition-colors"
+                >
+                  Edit Data
+                </button>
+                <div className="h-px bg-slate-100 my-1 mx-2" />
+                <button
+                  onClick={() => {
+                    setActiveDropdown(null);
+                    setMemberToDelete(item);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-semibold transition-colors"
+                >
+                  Hapus Member
+                </button>
+              </div>
+            </>
+          )}
         </div>
       ),
     },
@@ -241,7 +277,7 @@ export default function MembersClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Manajemen Member</h1>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">Manajemen Member</h1>
           <p className="text-slate-500 text-sm mt-1">{initialMembers.length} member terdaftar.</p>
         </div>
         <div className="flex gap-4 items-center">
@@ -268,13 +304,19 @@ export default function MembersClient({
       </div>
 
       {/* Data Table */}
-      <DataTable columns={columns} data={filteredMembers} emptyMessage="Member tidak ditemukan" emptyDescription="Tidak ada member yang cocok dengan pencarian Anda." />
+      <DataTable columns={columns} data={paginatedData} emptyMessage="Member tidak ditemukan" emptyDescription="Tidak ada member yang cocok dengan pencarian Anda." />
+      
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
 
       {/* Edit Profile Modal */}
       {editModal && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditModal(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-[scaleIn_0.25s_ease-out] max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-[scaleIn_0.25s_ease-out] max-h-[85vh] overflow-y-auto">
             <style>{`
               @keyframes scaleIn {
                 from { opacity: 0; transform: scale(0.95); }
@@ -288,7 +330,7 @@ export default function MembersClient({
               </button>
             </div>
             
-            <div className="space-y-4 mb-4">
+            <div className="space-y-3 mb-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap</label>
                 <input type="text" value={editName} onChange={e => setEditName(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-300" />
@@ -305,7 +347,7 @@ export default function MembersClient({
 
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Role Membership</label>
             <div className="space-y-2 mb-4">
-              {["MEMBER", "MEMBER"].map((role) => (
+              {["MEMBER", "TRAINER", "ADMIN_KASIR"].map((role) => (
                 <label
                   key={role}
                   className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
@@ -324,9 +366,9 @@ export default function MembersClient({
                     className="accent-rose-500"
                   />
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{role === "MEMBER" ? "VIP Member" : "Regular Member"}</p>
+                    <p className="text-sm font-semibold text-slate-900">{role === "MEMBER" ? "Member" : role === "TRAINER" ? "Personal Trainer" : "Kasir"}</p>
                     <p className="text-xs text-slate-500">
-                      {role === "MEMBER" ? "Akses penuh + sesi PT premium" : "Akses standar"}
+                      {role === "MEMBER" ? "Akses gym standar" : role === "TRAINER" ? "Akses trainer" : "Akses admin kasir"}
                     </p>
                   </div>
                 </label>
@@ -359,7 +401,7 @@ export default function MembersClient({
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 animate-[scaleIn_0.25s_ease-out] max-h-[90vh] overflow-y-auto">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 animate-[scaleIn_0.25s_ease-out] max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-xl font-extrabold text-slate-900">Registrasi Member Baru Khusus VIP</h3>
               <button onClick={() => setIsAddModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors">
@@ -369,7 +411,7 @@ export default function MembersClient({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Kolom Kiri: Data Diri */}
-              <div className="space-y-4 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+              <div className="space-y-3 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                 <h4 className="font-semibold text-slate-800 border-b border-slate-200 pb-2 mb-3">1. Data Diri Member</h4>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
@@ -396,7 +438,7 @@ export default function MembersClient({
               </div>
 
               {/* Kolom Kanan: Pembayaran */}
-              <div className="space-y-4 bg-emerald-50/30 p-4 rounded-xl border border-emerald-100">
+              <div className="space-y-3 bg-emerald-50/30 p-4 rounded-xl border border-emerald-100">
                 <h4 className="font-semibold text-slate-800 border-b border-emerald-200 pb-2 mb-3">2. Paket & Pembayaran</h4>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Paket Membership</label>
@@ -454,6 +496,55 @@ export default function MembersClient({
               </button>
               <button onClick={handleAddMember} disabled={isAdding || !!addEmailError} className="flex-[2] flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50">
                 {isAdding ? <Loader2 className="w-5 h-5 animate-spin" /> : "Daftarkan Member & Bayar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {memberToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isDeleting && setMemberToDelete(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-[scaleIn_0.25s_ease-out]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Hapus Member?</h3>
+                <p className="text-sm font-semibold text-slate-700 truncate">{memberToDelete.name}</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-500 mb-6">
+              Apakah Anda yakin ingin menghapus member ini? Tindakan ini tidak dapat dibatalkan dan semua data terkait member ini akan terhapus.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setMemberToDelete(null)} 
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={async () => {
+                  setIsDeleting(true);
+                  const { deleteMembership } = await import("@/app/actions/admin");
+                  const res = await deleteMembership(memberToDelete.id);
+                  setIsDeleting(false);
+                  if (res.success) {
+                    setToast({ visible: true, message: "Member berhasil dihapus.", type: "success" });
+                    setMemberToDelete(null);
+                    router.refresh();
+                  } else {
+                    setToast({ visible: true, message: res.error || "Gagal menghapus member", type: "error" });
+                  }
+                }} 
+                disabled={isDeleting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Yakin Hapus"}
               </button>
             </div>
           </div>

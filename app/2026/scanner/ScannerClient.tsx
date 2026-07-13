@@ -5,6 +5,8 @@ import { AdminToast, ToastType } from "@/components/admin/AdminToast";
 import { Camera, CheckCircle2, Clock, Scan, Loader2, XCircle } from "lucide-react";
 import { processQRCheckIn } from "@/app/actions/admin";
 import { Html5Qrcode } from "html5-qrcode";
+import { useResponsivePagination } from "@/hooks/useResponsivePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface ScanResult {
   name: string;
@@ -24,6 +26,7 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
   const [userIdInput, setUserIdInput] = useState("");
   const [expiredUserId, setExpiredUserId] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState("");
+  const [mounted, setMounted] = useState(false);
   
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isProcessingRef = useRef(false);
@@ -32,7 +35,10 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
     setToast({ visible: true, message, type });
   };
 
+  const { currentPage, totalPages, setCurrentPage, paginatedData, itemsPerPage } = useResponsivePagination(scanHistory);
+
   useEffect(() => {
+    setMounted(true);
     const html5QrCode = new Html5Qrcode("qr-reader");
     scannerRef.current = html5QrCode;
 
@@ -270,19 +276,23 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
               <p className="text-xs text-slate-500 mt-0.5">{scanHistory.length} scan tercatat</p>
             </div>
             <div className="divide-y divide-slate-100 h-[600px] overflow-y-auto">
-              {scanHistory.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 text-sm">Belum ada history check-in hari ini.</div>
               ) : (
-                scanHistory.map((scan, idx) => (
-                  <div key={idx} className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50/60 transition-colors">
-                    <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600 shrink-0">
-                      {scan.name.charAt(0)}
-                    </div>
+                paginatedData.map((scan, idx) => {
+                  const globalIdx = (currentPage - 1) * itemsPerPage + idx + 1;
+                  return (
+                  <div key={idx} className="px-5 py-3.5 flex items-center gap-3 hover:bg-slate-50/60 transition-colors min-w-0">
+                    <span className="text-slate-400 font-bold text-sm w-6 text-right shrink-0">#{globalIdx}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-800 truncate">{scan.name}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <Clock className="w-3 h-3 text-slate-400" />
-                        <span className="text-[10px] text-slate-500">{scan.time}</span>
+                        <span className="text-[10px] text-slate-500">
+                          {mounted 
+                            ? new Date(scan.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }) + " WIB"
+                            : "00:00 WIB"}
+                        </span>
                         {scan.status === "already" && (
                           <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">Sudah scan</span>
                         )}
@@ -294,9 +304,14 @@ export default function ScannerClient({ initialHistory }: { initialHistory: Scan
                       {scan.role === "MEMBER" ? "VIP" : "REG"}
                     </span>
                   </div>
-                ))
+                )})
               )}
             </div>
+            <Pagination 
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         </div>
       </div>

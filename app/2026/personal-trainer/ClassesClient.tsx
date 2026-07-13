@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { AdminToast, ToastType } from "@/components/admin/AdminToast";
+import { useResponsivePagination } from "@/hooks/useResponsivePagination";
+import { Pagination } from "@/components/ui/Pagination";
 import { CheckCircle2, Play, CheckSquare, Loader2, CalendarClock, Clock, Trash2 } from "lucide-react";
 import { confirmPTSession, startPTSession, finishPTSession } from "@/app/actions/admin";
 
@@ -38,12 +40,14 @@ export default function ClassesClient({
   initialSessions,
   userRole,
   initialSlots,
-  trainers
+  trainers,
+  todaySessions = []
 }: { 
   initialSessions: PTSessionItem[];
   userRole: string;
   initialSlots: PTScheduleSlotItem[];
   trainers: { id: string; name: string | null; email: string }[];
+  todaySessions?: any[];
 }) {
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" as ToastType });
   const [sessions, setSessions] = useState<PTSessionItem[]>(initialSessions);
@@ -168,21 +172,128 @@ export default function ClassesClient({
   };
 
   const pendingSessions = sessions.filter(s => s.status === "PENDING");
-  
-  // Filter for CONFIRMED sessions today
-  const todayStart = new Date();
-  todayStart.setHours(0,0,0,0);
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
-  
-  const todayConfirmedSessions = sessions.filter(s => {
-    if (s.status !== "CONFIRMED") return false;
-    const sDate = new Date(s.schedule);
-    return sDate >= todayStart && sDate < todayEnd;
+  const completedSessions = sessions.filter(s => s.status === "COMPLETED");
+
+  const { currentPage: completedPage, totalPages: completedTotalPages, setCurrentPage: setCompletedPage, paginatedData: paginatedCompleted } = useResponsivePagination(completedSessions);
+
+  const sortedSlots = [...slots].sort((a, b) => {
+    const dateA = a.targetDate ? new Date(a.targetDate).getTime() : 0;
+    const dateB = b.targetDate ? new Date(b.targetDate).getTime() : 0;
+    if (dateA !== dateB) return dateA - dateB;
+    return a.startTime.localeCompare(b.startTime);
   });
 
-  const ongoingSessions = sessions.filter(s => s.status === "ONGOING");
-  const completedSessions = sessions.filter(s => s.status === "COMPLETED");
+  const { currentPage: slotPage, totalPages: slotTotalPages, setCurrentPage: setSlotPage, paginatedData: paginatedSlots } = useResponsivePagination(sortedSlots);
+
+  const renderTodaySchedule = (item: any) => {
+    let badgeText = "Slot Tersedia";
+    let badgeClass = "bg-slate-100 text-slate-600";
+    let actionBtn = null;
+
+    const now = new Date();
+    const utcOffset = 7 * 60 * 60 * 1000;
+    const localNow = new Date(now.getTime() + utcOffset);
+    const hours = localNow.getUTCHours().toString().padStart(2, '0');
+    const mins = localNow.getUTCMinutes().toString().padStart(2, '0');
+    const currentTimeStr = `${hours}:${mins}`;
+
+    let isPastEndTime = false;
+    if (item.slotInfo && currentTimeStr > item.slotInfo.endTime) {
+      isPastEndTime = true;
+    }
+
+    if (item.isBooked) {
+      if (isPastEndTime) {
+        badgeText = "Selesai";
+        badgeClass = "bg-emerald-100 text-emerald-700";
+        actionBtn = null;
+      } else if (item.status === "PENDING") {
+        badgeText = "Menunggu";
+        badgeClass = "bg-amber-100 text-amber-700";
+        actionBtn = "CONFIRM";
+      } else if (item.status === "CONFIRMED") {
+        badgeText = "Terkonfirmasi";
+        badgeClass = "bg-blue-100 text-blue-700";
+        actionBtn = "START";
+      } else if (item.status === "ONGOING") {
+        badgeText = "Sedang Berjalan";
+        badgeClass = "bg-rose-100 text-rose-700";
+        actionBtn = "FINISH";
+      } else if (item.status === "COMPLETED") {
+        badgeText = "Selesai";
+        badgeClass = "bg-emerald-100 text-emerald-700";
+      }
+    } else if (item.slotInfo) {
+      if (isPastEndTime) {
+        badgeText = "Sesi Berakhir";
+        badgeClass = "bg-slate-100 text-slate-400";
+      } else if (currentTimeStr >= item.slotInfo.startTime && currentTimeStr <= item.slotInfo.endTime) {
+        badgeText = "Sesi Aktif (Kosong)";
+        badgeClass = "bg-slate-100 text-slate-500";
+      }
+    }
+
+    const isProcessing = item.isBooked ? processingId === item.id : false;
+
+    return (
+      <div key={item.id} className="bg-white border border-slate-200 rounded-2xl p-3 md:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md">
+        <div className="flex items-start gap-4">
+          <div>
+            <p className="text-sm md:text-base font-bold text-slate-900">
+              {item.isBooked ? item.memberName : "Slot Tersedia"}
+            </p>
+            <p className="text-xs md:text-sm text-slate-500 flex items-center gap-1.5 mt-1">
+              <CalendarClock className="w-3.5 h-3.5" />
+              {item.timeStr}
+            </p>
+            <p className="text-xs md:text-sm text-rose-500 font-medium mt-1">Trainer: {item.trainerName}</p>
+            {item.quota && (
+              <p className="text-xs md:text-sm font-semibold text-emerald-600 mt-1">
+                Terdaftar: {item.quota.current} / {item.quota.max}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center md:justify-end gap-2 mt-2 md:mt-0 flex-wrap">
+          <span className={`text-xs font-bold px-3 py-1 rounded-full ${badgeClass}`}>
+            {badgeText}
+          </span>
+          
+          {actionBtn === "CONFIRM" && (
+            <button
+              onClick={() => handleConfirm(item.id)}
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              Konfirmasi
+            </button>
+          )}
+          {actionBtn === "START" && (
+            <button
+              onClick={() => handleStart(item.id)}
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-xs rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+              Mulai
+            </button>
+          )}
+          {actionBtn === "FINISH" && (
+            <button
+              onClick={() => handleFinish(item.id)}
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-3 py-1.5 bg-rose-500 text-white hover:bg-rose-600 font-bold text-xs rounded-lg transition-colors shadow-sm disabled:opacity-50"
+            >
+              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckSquare className="w-4 h-4" />}
+              Akhiri
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderCard = (session: PTSessionItem, action: "CONFIRM" | "START" | "FINISH" | "NONE") => {
     const d = new Date(session.schedule);
@@ -191,18 +302,15 @@ export default function ClassesClient({
     const isProcessing = processingId === session.id;
 
     return (
-      <div key={session.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md">
+      <div key={session.id} className="bg-white border border-slate-200 rounded-2xl p-3 md:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold shrink-0 shadow-sm">
-            {session.memberName.charAt(0)}
-          </div>
           <div>
-            <p className="font-bold text-slate-900">{session.memberName}</p>
-            <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-1">
+            <p className="text-sm md:text-base font-bold text-slate-900">{session.memberName}</p>
+            <p className="text-xs md:text-sm text-slate-500 flex items-center gap-1.5 mt-1">
               <CalendarClock className="w-3.5 h-3.5" />
               {dateStr} • {timeStr} WIB
             </p>
-            <p className="text-xs text-rose-500 font-medium mt-1">Trainer: {session.trainerName}</p>
+            <p className="text-xs md:text-sm text-rose-500 font-medium mt-1">Trainer: {session.trainerName}</p>
           </div>
         </div>
 
@@ -258,7 +366,7 @@ export default function ClassesClient({
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Manajemen Sesi PT</h1>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">Manajemen Sesi PT</h1>
           <p className="text-slate-500 text-sm mt-1">Kelola siklus hidup pemesanan Personal Trainer.</p>
         </div>
       </div>
@@ -291,15 +399,15 @@ export default function ClassesClient({
           <div>
             <h2 className="text-lg font-bold text-slate-900 mb-6">Kelola Slot Jadwal PT</h2>
             
-            <form onSubmit={handleAddSlot} className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 items-end">
-              <div className="w-full md:col-span-5 mb-2">
-                <label className="block text-xs font-bold text-slate-700 mb-3">Pilih Tanggal</label>
+            <form onSubmit={handleAddSlot} className="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-4 mb-6 bg-slate-50 p-4 md:p-6 rounded-2xl border border-slate-200 items-end">
+              <div className="w-full md:col-span-5 mb-1 md:mb-2">
+                <label className="block text-xs font-bold text-slate-700 mb-2 md:mb-3">Pilih Tanggal</label>
                 <input 
                   type="date"
                   value={slotDate}
                   min={todayStr}
                   onChange={e => setSlotDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+                  className="w-full px-4 py-2 md:py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
                 />
               </div>
               
@@ -309,7 +417,7 @@ export default function ClassesClient({
                   type="time" 
                   value={slotStart} 
                   onChange={e => setSlotStart(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all"
+                  className="w-full px-3.5 py-2 md:py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all"
                 />
               </div>
               <div className="w-full">
@@ -318,7 +426,7 @@ export default function ClassesClient({
                   type="time" 
                   value={slotEnd} 
                   onChange={e => setSlotEnd(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all"
+                  className="w-full px-3.5 py-2 md:py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all"
                 />
               </div>
               
@@ -330,7 +438,7 @@ export default function ClassesClient({
                   pattern="[0-9]*"
                   value={slotMaxCapacity} 
                   onChange={e => setSlotMaxCapacity(Number(e.target.value.replace(/\D/g, '')))}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  className="w-full px-4 py-2 md:py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
               </div>
               <div className="w-full">
@@ -340,7 +448,7 @@ export default function ClassesClient({
                   placeholder="Ketik nama trainer..."
                   value={slotTrainerInput} 
                   onChange={e => setSlotTrainerInput(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  className="w-full px-4 py-2 md:py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
               </div>
               <div className="w-full">
@@ -355,7 +463,7 @@ export default function ClassesClient({
                       const val = e.target.value.replace(/\D/g, '');
                       setSlotPrice(Number(val));
                     }}
-                    className="w-full pl-11 pr-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                    className="w-full pl-11 pr-3.5 py-2 md:py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   />
                 </div>
               </div>
@@ -371,7 +479,7 @@ export default function ClassesClient({
                     if (typeof num === 'number' && num > 100) num = 100;
                     setSlotDiscount(num);
                   }}
-                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  className="w-full px-4 py-2 md:py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
               </div>
               <button 
@@ -384,8 +492,9 @@ export default function ClassesClient({
             </form>
 
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-              <table className="w-full text-left text-sm text-slate-600">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase text-xs tracking-wider">
+              <div className="w-full rounded-lg border border-gray-100">
+                <table className="w-full text-left text-sm text-slate-600 block md:table">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase text-xs tracking-wider whitespace-nowrap hidden md:table-header-group">
                   <tr>
                     <th className="px-6 py-4">Tanggal</th>
                     <th className="px-6 py-4">Jam</th>
@@ -395,44 +504,43 @@ export default function ClassesClient({
                     <th className="px-6 py-4 text-right">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {slots.length === 0 ? (
+                <tbody className="divide-y divide-slate-100 block md:table-row-group">
+                  {paginatedSlots.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                      <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                         Belum ada slot waktu yang dibuat.
                       </td>
                     </tr>
                   ) : (
-                    slots
-                      .sort((a, b) => {
-                        const dateA = a.targetDate ? new Date(a.targetDate).getTime() : 0;
-                        const dateB = b.targetDate ? new Date(b.targetDate).getTime() : 0;
-                        if (dateA !== dateB) return dateA - dateB;
-                        return a.startTime.localeCompare(b.startTime);
-                      })
+                    paginatedSlots
                       .map((s) => {
                         const dateStr = s.targetDate 
                           ? new Date(s.targetDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
                           : s.dayOfWeek;
                         
                         return (
-                          <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-4 font-semibold text-slate-900 w-1/4">
-                              {dateStr}
+                          <tr key={s.id} className="hover:bg-slate-50/50 transition-colors block md:table-row mb-4 border border-slate-200 rounded-xl md:mb-0 md:border-none md:rounded-none bg-white p-2 md:p-0 shadow-sm md:shadow-none">
+                            <td className="px-3 py-2.5 md:px-6 md:py-4 font-semibold text-slate-900 md:w-1/4 md:whitespace-nowrap flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                              <span className="md:hidden text-xs font-bold text-slate-500">Tanggal:</span>
+                              <span>{dateStr}</span>
                             </td>
-                            <td className="px-6 py-4 w-1/4">
+                            <td className="px-3 py-2.5 md:px-6 md:py-4 md:w-1/4 md:whitespace-nowrap flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                              <span className="md:hidden text-xs font-bold text-slate-500">Jam:</span>
                               <span className="bg-slate-100 text-slate-700 font-medium px-2 py-1 rounded-md">
                                 {s.startTime} - {s.endTime}
                               </span>
                             </td>
-                            <td className="px-6 py-4">
-                              {s.trainer?.name || s.trainerName || <span className="text-slate-400 italic">Bebas</span>}
+                            <td className="px-3 py-2.5 md:px-6 md:py-4 md:whitespace-nowrap flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                              <span className="md:hidden text-xs font-bold text-slate-500">Trainer:</span>
+                              <span>{s.trainer?.name || s.trainerName || <span className="text-slate-400 italic">Bebas</span>}</span>
                             </td>
-                            <td className="px-6 py-4">
+                            <td className="px-3 py-2.5 md:px-6 md:py-4 md:whitespace-nowrap flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                              <span className="md:hidden text-xs font-bold text-slate-500">Kuota:</span>
                               <span className="font-semibold text-slate-900">{s.maxCapacity} Orang</span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex flex-col">
+                            <td className="px-3 py-2.5 md:px-6 md:py-4 md:whitespace-nowrap flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                              <span className="md:hidden text-xs font-bold text-slate-500">Harga:</span>
+                              <div className="flex flex-col text-right md:text-left">
                                 <span className="font-bold text-emerald-600">
                                   IDR {(s.price - (s.price * ((s.discountPercentage || 0) / 100))).toLocaleString("id-ID")}
                                 </span>
@@ -443,10 +551,10 @@ export default function ClassesClient({
                                 )}
                               </div>
                             </td>
-                            <td className="px-6 py-4 text-right">
+                            <td className="px-3 py-3 md:px-6 md:py-4 text-right md:whitespace-nowrap flex justify-end block md:table-cell border-b border-slate-100 md:border-none last:border-none">
                               <button
                                 onClick={() => handleDeleteSlot(s.id)}
-                                className="text-red-500 hover:text-red-700 font-medium text-xs bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors"
+                                className="text-red-500 hover:text-red-700 font-medium text-xs bg-red-50 hover:bg-red-100 px-4 py-2 md:px-3 md:py-1.5 rounded-lg transition-colors w-full md:w-auto text-center"
                               >
                                 Hapus
                               </button>
@@ -456,7 +564,13 @@ export default function ClassesClient({
                       })
                   )}
                 </tbody>
-              </table>
+                </table>
+              </div>
+              <Pagination 
+                currentPage={slotPage}
+                totalPages={slotTotalPages}
+                onPageChange={setSlotPage}
+              />
             </div>
           </div>
         </div>
@@ -464,54 +578,38 @@ export default function ClassesClient({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Kolom Kiri */}
-          <div className="space-y-8">
-          {/* Section 1: ONGOING */}
-          <section>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-              <h2 className="text-lg font-bold text-slate-900">Sesi Aktif (Sedang Berjalan)</h2>
-              <span className="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{ongoingSessions.length}</span>
-            </div>
-            <div className="space-y-3">
-              {ongoingSessions.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  Tidak ada sesi PT yang sedang berjalan.
-                </div>
-              ) : (
-                ongoingSessions.map(s => renderCard(s, "FINISH"))
-              )}
-            </div>
-          </section>
+          <div className="space-y-4 md:space-y-6">
+
 
           {/* Section 2: CONFIRMED (Today) */}
           <section>
             <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-lg font-bold text-slate-900">Sesi Hari Ini</h2>
-              <span className="text-xs font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{todayConfirmedSessions.length}</span>
+              <h2 className="text-base md:text-xl font-bold text-slate-900">Sesi Hari Ini</h2>
+              <span className="text-xs md:text-sm font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{todaySessions?.length || 0}</span>
             </div>
             <div className="space-y-3">
-              {todayConfirmedSessions.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              {!todaySessions || todaySessions.length === 0 ? (
+                <div className="p-3 md:p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                   Tidak ada jadwal PT untuk hari ini.
                 </div>
               ) : (
-                todayConfirmedSessions.map(s => renderCard(s, "START"))
+                todaySessions.map(renderTodaySchedule)
               )}
             </div>
           </section>
         </div>
 
         {/* Kolom Kanan */}
-        <div className="space-y-8">
+        <div className="space-y-4 md:space-y-6">
           {/* Section 3: PENDING */}
           <section>
             <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-lg font-bold text-slate-900">Booking Baru (Menunggu Konfirmasi)</h2>
-              <span className="text-xs font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{pendingSessions.length}</span>
+              <h2 className="text-base md:text-xl font-bold text-slate-900">Booking Baru (Menunggu Konfirmasi)</h2>
+              <span className="text-xs md:text-sm font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{pendingSessions.length}</span>
             </div>
             <div className="space-y-3">
               {pendingSessions.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <div className="p-3 md:p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                   Tidak ada booking baru.
                 </div>
               ) : (
@@ -523,18 +621,23 @@ export default function ClassesClient({
           {/* Section 4: COMPLETED (Recent) */}
           <section>
             <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-lg font-bold text-slate-900">Sesi Selesai (Terbaru)</h2>
-              <span className="text-xs font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{completedSessions.length}</span>
+              <h2 className="text-base md:text-xl font-bold text-slate-900">Sesi Selesai (Terbaru)</h2>
+              <span className="text-xs md:text-sm font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{completedSessions.length}</span>
             </div>
             <div className="space-y-3 opacity-60 hover:opacity-100 transition-opacity">
-              {completedSessions.slice(0, 5).length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              {paginatedCompleted.length === 0 ? (
+                <div className="p-3 md:p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                   Belum ada sesi yang selesai.
                 </div>
               ) : (
-                completedSessions.slice(0, 5).map(s => renderCard(s, "NONE"))
+                paginatedCompleted.map(s => renderCard(s, "NONE"))
               )}
             </div>
+            <Pagination 
+              currentPage={completedPage}
+              totalPages={completedTotalPages}
+              onPageChange={setCompletedPage}
+            />
           </section>
         </div>
 

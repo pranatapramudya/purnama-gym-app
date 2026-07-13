@@ -11,7 +11,20 @@ Aplikasi dibangun menggunakan pondasi modern web development yang mengedepankan 
 - **Authentication & Identity:** Clerk (menangani *Single Sign-On*, registrasi instan, sesi, dan otorisasi *edge-level*).
 - **Database & ORM:** PostgreSQL serverless (Neon DB) yang dikelola dengan presisi dan *type-safe* melalui Prisma ORM.
 
----
+### 📱 1.1 Responsive Layout Strategy (Table-to-Card)
+Untuk mencegah masalah UX *horizontal scrolling* pada perangkat genggam, sistem menerapkan pola transformasi DOM tingkat lanjut tanpa melakukan duplikasi elemen (`display: none` trik ganda). 
+- **Struktur Adaptif:** Elemen `<table>` utama diberikan kelas adaptif (contoh: `block md:table`), memaksa tabel menjadi tumpukan balok pada *mobile*, lalu kembali ke struktur *grid* tabel murni di *desktop*.
+- **Penyembunyian Header:** Komponen `<thead>` dihilangkan pada *mobile* melalui `hidden md:table-header-group`.
+- **Ekspansi Baris & Sel:** Setiap `<tr>` berubah menjadi kartu (`block md:table-row`), dan setiap `<td>` berubah menjadi baris *flexbox* berlabel (`block md:table-cell`). Kombinasi ini memberikan ilusi kartu aplikasi murni di telepon seluler tanpa menambah beban *Virtual DOM*.
+
+### 🧩 1.2 Component & Hook Architecture
+Aplikasi mengadopsi pendekatan *custom hooks* untuk abstraksi logika kompleks yang berulang, menjamin kode komponen klien tetap bersih dan terfokus pada presentasi UI.
+- **`useResponsivePagination` Hook:** Hook utama penggerak fitur *Global Responsive Pagination*. Hook ini mendengarkan perubahan *viewport* (`window.innerWidth`) secara aman-SSR (terisolasi dalam `useEffect`). Jika lebar layar < 768px, batas data dipotong menjadi 5 item (mencegah *scroll fatigue*), sebaliknya 10 item pada *desktop*. Hook langsung mengeksekusi logika *slicing* pada memori tanpa membebani panggilan *database* berulang untuk *dataset* skala menengah.
+
+### 🕰️ 1.3 Timezone Handling Strategy (WIB Enforcement)
+Seluruh logika waktu (`Date` parsing, kadaluwarsa sesi, `Auto-Selesai` jadwal PT) tidak pernah bergantung pada zona waktu perangkat pengguna lokal. Semua perhitungan di-enforce ke zona waktu **Asia/Jakarta (WIB / UTC+7)** di sisi peladen (*server-side*). Hal ini mencegah anomali saat pengguna mengakses aplikasi dari zona waktu berbeda atau mencoba mencurangi validasi berbasis `new Date()`.
+
+----
 
 ## 🗄️ 2. Arsitektur Database & Relasi (Prisma Schema)
 Sistem memiliki beberapa entitas/model utama untuk mendukung seluruh alur operasional gym:

@@ -24,7 +24,7 @@ export default async function ScannerPage() {
     name: ci.user.name || "Member",
     email: ci.user.email,
     role: ci.user.role,
-    time: ci.timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+    time: ci.timestamp.toISOString(),
     status: "success" as const,
   }));
 

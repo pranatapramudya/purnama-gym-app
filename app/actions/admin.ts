@@ -115,6 +115,21 @@ export async function updateMembership(userId: string, data: { role: Role; endDa
   }
 }
 
+export async function deleteMembership(userId: string) {
+  await verifyAdmin();
+  try {
+    // Delete related records to prevent foreign key constraint failures if necessary
+    // E.g., transactions, check-ins, etc.
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+    revalidatePath("/2026/members");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: "Gagal menghapus member: " + error.message };
+  }
+}
+
 export async function verifyTransaction(transactionId: string) {
   await verifyAdmin();
   try {
@@ -321,7 +336,7 @@ export async function processQRCheckIn(userId: string) {
           email: user.email,
           role: user.role,
           shortId: user.shortId || user.id,
-          time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+          time: new Date().toISOString(),
           status: "checkout"
         }
       };
@@ -350,7 +365,7 @@ export async function processQRCheckIn(userId: string) {
         email: user.email,
         role: user.role,
         shortId: user.shortId || user.id,
-        time: checkIn.timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+        time: checkIn.timestamp.toISOString(),
         status: "success",
         hasPTSession: !!ptSession
       }

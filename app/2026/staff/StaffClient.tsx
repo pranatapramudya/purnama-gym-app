@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, UserPlus, Search, Shield, Dumbbell, Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { NewStaffModal } from "@/components/admin/NewStaffModal";
 import { useRouter } from "next/navigation";
 import { deleteStaffAccount } from "@/app/actions/superadmin";
+import { useResponsivePagination } from "@/hooks/useResponsivePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 type StaffUser = {
   id: string;
@@ -32,6 +34,12 @@ export default function StaffClient({ initialStaff, currentUserId }: StaffClient
     staff.email.toLowerCase().includes(search.toLowerCase()) ||
     staff.role.toLowerCase().includes(search.toLowerCase())
   );
+
+  const { currentPage, totalPages, setCurrentPage, paginatedData } = useResponsivePagination(filteredStaff);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, setCurrentPage]);
 
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
@@ -125,9 +133,9 @@ export default function StaffClient({ initialStaff, currentUserId }: StaffClient
 
       {/* Staff List Table */}
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50/80 text-slate-500 font-semibold border-b border-slate-200 text-xs uppercase tracking-wider">
+        <div className="w-full">
+          <table className="w-full text-left text-sm text-slate-600 block md:table">
+            <thead className="bg-slate-50/80 text-slate-500 font-semibold border-b border-slate-200 text-xs uppercase tracking-wider hidden md:table-header-group">
               <tr>
                 <th className="px-6 py-4">Karyawan</th>
                 <th className="px-6 py-4">Jabatan</th>
@@ -135,26 +143,27 @@ export default function StaffClient({ initialStaff, currentUserId }: StaffClient
                 <th className="px-6 py-4 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredStaff.length > 0 ? (
-                filteredStaff.map((staff) => (
-                  <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold uppercase text-xs shrink-0">
-                          {staff.name ? staff.name.substring(0, 2) : staff.email.substring(0, 2)}
-                        </div>
-                        <div>
+            <tbody className="divide-y divide-slate-100 block md:table-row-group">
+              {paginatedData.length > 0 ? (
+                paginatedData.map((staff, index) => (
+                  <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors block md:table-row mb-4 border border-slate-200 rounded-xl bg-white p-3 md:p-0 shadow-sm md:shadow-none md:mb-0 md:border-none md:rounded-none">
+                    <td className="px-3 py-3 md:px-6 md:py-4 flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                      <span className="md:hidden text-xs font-bold text-slate-500 mr-4">Karyawan:</span>
+                      <div className="flex items-center gap-3 text-right md:text-left justify-end md:justify-start">
+                        <span className="text-slate-400 font-bold text-sm">#{index + 1}</span>
+                        <div className="break-words whitespace-normal text-right md:text-left">
                           <p className="font-bold text-slate-800">{staff.name || "Tanpa Nama"}</p>
                           <p className="text-slate-500 text-xs">{staff.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 md:px-6 md:py-4 flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                      <span className="md:hidden text-xs font-bold text-slate-500 mr-4">Jabatan:</span>
                       {getRoleBadge(staff.role)}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-slate-500">
+                    <td className="px-3 py-3 md:px-6 md:py-4 flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                      <span className="md:hidden text-xs font-bold text-slate-500 mr-4">Terdaftar:</span>
+                      <span className="text-slate-500 text-right md:text-left">
                         {new Date(staff.createdAt).toLocaleDateString("id-ID", {
                           day: "numeric",
                           month: "long",
@@ -162,23 +171,24 @@ export default function StaffClient({ initialStaff, currentUserId }: StaffClient
                         })}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 py-3 md:px-6 md:py-4 flex justify-end block md:table-cell border-b border-slate-100 md:border-none last:border-none text-right">
                       {staff.clerkUserId !== currentUserId && (
                         <button
                           onClick={() => setDeleteConfirm({ id: staff.id, clerkId: staff.clerkUserId, name: staff.name || staff.email })}
                           disabled={deletingId === staff.id}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                          className="p-2.5 md:p-2 text-red-600 md:text-slate-400 hover:text-red-600 bg-red-50 md:bg-transparent hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 w-full md:w-auto flex justify-center items-center gap-2"
                           title="Hapus Karyawan"
                         >
                           {deletingId === staff.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          <span className="md:hidden font-semibold text-sm">Hapus</span>
                         </button>
                       )}
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center">
+                <tr className="block md:table-row">
+                  <td colSpan={4} className="px-6 py-12 text-center block md:table-cell">
                     <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-50 mb-3">
                       <Users className="w-5 h-5 text-slate-400" />
                     </div>
@@ -189,6 +199,11 @@ export default function StaffClient({ initialStaff, currentUserId }: StaffClient
             </tbody>
           </table>
         </div>
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       <NewStaffModal 

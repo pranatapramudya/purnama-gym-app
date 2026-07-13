@@ -5,7 +5,7 @@ import { ChevronDown, Inbox } from "lucide-react";
 interface Column<T> {
   key: string;
   label: string;
-  render?: (item: T) => React.ReactNode;
+  render?: (item: T, index: number) => React.ReactNode;
   className?: string;
 }
 
@@ -35,9 +35,9 @@ export function DataTable<T extends Record<string, any>>({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
       {/* DESKTOP VIEW */}
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto overflow-hidden rounded-2xl">
         <table className="min-w-full divide-y divide-slate-100">
           <thead>
             <tr className="bg-slate-50/80">
@@ -65,7 +65,7 @@ export function DataTable<T extends Record<string, any>>({
                     key={col.key}
                     className={`px-5 py-4 text-sm text-slate-700 whitespace-nowrap ${col.className || ""}`}
                   >
-                    {col.render ? col.render(item) : String(item[col.key] ?? "")}
+                    {col.render ? col.render(item, idx) : String(item[col.key] ?? "")}
                   </td>
                 ))}
               </tr>
@@ -83,15 +83,15 @@ export function DataTable<T extends Record<string, any>>({
               if (isAction) {
                 return (
                   <div key={col.key} className="mt-2 pt-3 border-t border-slate-100 flex justify-end w-full">
-                    {col.render ? col.render(item) : String(item[col.key] ?? "")}
+                    {col.render ? col.render(item, idx) : String(item[col.key] ?? "")}
                   </div>
                 );
               }
               return (
                 <div key={col.key} className="flex justify-between items-start gap-4">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider min-w-[90px] mt-0.5">{col.label}</span>
-                  <div className="text-sm text-slate-800 text-right">
-                    {col.render ? col.render(item) : String(item[col.key] ?? "")}
+                  <div className="text-sm text-slate-800 text-right min-w-0">
+                    {col.render ? col.render(item, idx) : String(item[col.key] ?? "")}
                   </div>
                 </div>
               );

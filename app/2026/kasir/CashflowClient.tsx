@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Plus, ArrowUpCircle, ArrowDownCircle, Banknote, Calendar } from "lucide-react";
+import { useResponsivePagination } from "@/hooks/useResponsivePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 type CashFlowData = {
   id: string;
@@ -47,6 +49,12 @@ export default function CashflowClient({ initialData, adminId, userRole }: Props
     }
     return true; // all
   });
+
+  const { currentPage, totalPages, setCurrentPage, paginatedData } = useResponsivePagination(filteredData);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, setCurrentPage]);
 
   const totalIncome = filteredData.filter(d => d.type === "INCOME").reduce((acc, curr) => acc + curr.amount, 0);
   const totalExpense = filteredData.filter(d => d.type === "EXPENSE").reduce((acc, curr) => acc + curr.amount, 0);
@@ -159,9 +167,9 @@ export default function CashflowClient({ initialData, adminId, userRole }: Props
           </div>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
+        <div className="w-full rounded-lg border border-slate-100">
+          <table className="w-full text-left border-collapse block md:table">
+            <thead className="hidden md:table-header-group">
               <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
                 <th className="px-6 py-4 font-medium">Tanggal</th>
                 <th className="px-6 py-4 font-medium">Tipe</th>
@@ -170,36 +178,41 @@ export default function CashflowClient({ initialData, adminId, userRole }: Props
                 <th className="px-6 py-4 font-medium text-right">Nominal</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredData.length > 0 ? (
-                filteredData.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      {new Date(item.createdAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}
+            <tbody className="divide-y divide-slate-100 block md:table-row-group">
+              {paginatedData.length > 0 ? (
+                paginatedData.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50 transition-colors block md:table-row mb-4 border border-slate-200 rounded-xl bg-white p-2 md:p-0 shadow-sm md:shadow-none md:mb-0 md:border-none md:rounded-none">
+                    <td className="px-3 py-2.5 md:px-6 md:py-4 whitespace-nowrap text-sm text-slate-600 flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                      <span className="md:hidden text-xs font-bold text-slate-500">Tanggal:</span>
+                      <span>{new Date(item.createdAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-2.5 md:px-6 md:py-4 whitespace-nowrap flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                      <span className="md:hidden text-xs font-bold text-slate-500">Tipe:</span>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
                         item.type === 'INCOME' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
                       }`}>
                         {item.type === 'INCOME' ? 'Masuk' : 'Keluar'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-800 font-medium">
-                      {item.description}
+                    <td className="px-3 py-2.5 md:px-6 md:py-4 text-sm text-slate-800 font-medium flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                      <span className="md:hidden text-xs font-bold text-slate-500 whitespace-nowrap mr-4">Keterangan:</span>
+                      <span className="text-right md:text-left">{item.description}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      {item.adminName}
+                    <td className="px-3 py-2.5 md:px-6 md:py-4 whitespace-nowrap text-sm text-slate-500 flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
+                      <span className="md:hidden text-xs font-bold text-slate-500">Kasir:</span>
+                      <span>{item.adminName}</span>
                     </td>
-                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold text-right ${
+                    <td className={`px-3 py-2.5 md:px-6 md:py-4 whitespace-nowrap text-sm font-bold flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none md:text-right ${
                       item.type === 'INCOME' ? 'text-emerald-600' : 'text-rose-600'
                     }`}>
-                      {item.type === 'INCOME' ? '+' : '-'} Rp {item.amount.toLocaleString('id-ID')}
+                      <span className="md:hidden text-xs font-bold text-slate-500 text-left">Nominal:</span>
+                      <span>{item.type === 'INCOME' ? '+' : '-'} Rp {item.amount.toLocaleString('id-ID')}</span>
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-sm">
+                <tr className="block md:table-row">
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-sm block md:table-cell">
                     Belum ada catatan arus kas.
                   </td>
                 </tr>
@@ -207,6 +220,11 @@ export default function CashflowClient({ initialData, adminId, userRole }: Props
             </tbody>
           </table>
         </div>
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {isModalOpen && (

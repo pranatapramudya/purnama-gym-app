@@ -57,17 +57,6 @@ export default async function AdminLayout({
 
   return (
     <div className="flex flex-col md:flex-row h-[100dvh] bg-slate-100">
-      {/* Mobile Header */}
-      <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-20 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center shadow-md shadow-rose-500/20">
-            <span className="text-white text-sm font-black tracking-tighter">PG</span>
-          </div>
-          <span className="font-extrabold text-slate-900 tracking-tight">Admin Panel</span>
-        </div>
-        <UserButton />
-      </header>
-
       <AdminSidebar adminName={dbUser.name || "Admin"} role={dbUser.role.toLowerCase()} />
       <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
         {children}

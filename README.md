@@ -59,9 +59,17 @@ npm run dev
 - `/lib` - Core configurations (Prisma Client, dll.)
 - `/prisma` - Database schema and configurations
 
-## 🌟 Fitur Utama & Pembaruan Terkini (Versi 4.30)
+## 🌟 Fitur Utama & Pembaruan Terkini (Versi 4.49)
 *Sistem kini beroperasi penuh dengan skalabilitas tingkat Enterprise:*
 **User Roles yang Didukung:** Member, Admin, Superadmin, dan Trainer.
+
+### 📱 Enterprise UI/UX & Arsitektur Responsif
+1. **Mobile-First Data Architecture:** Data tables dynamically transform into stacked cards on mobile devices to prevent horizontal scrolling.
+2. **Global Responsive Pagination:** Intelligent data slicing adapting to screen sizes (10 rows on desktop, 5 on mobile) to ensure optimal DOM performance.
+3. **Smart Session Lifecycle:** Automated, time-based session completion (`Auto-Selesai`) using server-side local timezone validation (Asia/Jakarta).
+4. **Real-Time Quota Tracking:** Immediate visual feedback on schedule capacity versus active bookings.
+
+### ⚡ Core Features
 
 1. **Sistem Harga Dinamis (Snapshot Slot Pricing):** Manajemen harga PT tidak lagi menggunakan master global. Setiap slot memiliki harga dan diskon independen yang disimpan sebagai *snapshot* (Immutable Pricing), mencegah kebocoran data harga (*Ghost Pricing*) di frontend.
 2. **Universal QR Code & Pemindai Biodata Pintar:** ID Member (misal: `M-RGAO`) dipetakan dalam QR Code dinamis berbasis URL. Scanner internal cerdas mendeteksi QR, melakukan pencarian ke *database* (`endsWith` fallback), dan memunculkan Kartu Biodata interaktif (Nama, Status VIP, Notifikasi Sesi PT) sekaligus mencatat riwayat Check-in.
