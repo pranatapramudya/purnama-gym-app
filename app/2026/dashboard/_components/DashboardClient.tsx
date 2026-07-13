@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Users, TrendingUp, CalendarDays, Activity, Download, Calendar, ChevronDown, RefreshCw } from "lucide-react";
+import DateFilterDropdown from "@/components/ui/DateFilterDropdown";
 import {
   AreaChart,
   Area,
@@ -62,9 +63,7 @@ export default function DashboardClient({
   const [isPending, startTransition] = useTransition();
 
   const handleFilterChange = (newFilter: string) => {
-    startTransition(() => {
-      router.push(`?filter=${newFilter}`);
-    });
+    router.push(`?filter=${newFilter}`);
   };
 
   // Polling data every 30 seconds invisibly
@@ -195,7 +194,7 @@ export default function DashboardClient({
       <div className="space-y-4">
         <div className="flex justify-end relative">
           {userRole === 'super_admin' ? (
-            <FilterDropdown currentFilter={revenueFilter} onFilterChange={handleFilterChange} />
+            <DateFilterDropdown currentFilter={revenueFilter} onFilterChange={handleFilterChange} />
           ) : (
             <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700">
               <Calendar className="w-4 h-4 text-emerald-500" />
@@ -330,62 +329,4 @@ export default function DashboardClient({
   );
 }
 
-function FilterDropdown({ currentFilter, onFilterChange }: { currentFilter: string, onFilterChange: (filter: string) => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20"
-      >
-        <Calendar className="w-4 h-4 text-emerald-500" />
-        <span>
-          {currentFilter === "today" && "Hari Ini"}
-          {currentFilter === "week" && "Minggu Ini"}
-          {currentFilter === "month" && "Bulan Ini"}
-          {currentFilter === "last_month" && "Bulan Lalu"}
-          {currentFilter === "year" && "Tahun Ini"}
-        </span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-      
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden z-10">
-          <div className="p-1">
-            {(["today", "month", "last_month", "year"] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => {
-                  onFilterChange(filter);
-                  setIsOpen(false);
-                }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  currentFilter === filter 
-                    ? 'bg-emerald-50 text-emerald-600' 
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                {filter === "today" && "Hari Ini"}
-                {filter === "month" && "Bulan Ini"}
-                {filter === "last_month" && "Bulan Lalu"}
-                {filter === "year" && "Tahun Ini"}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

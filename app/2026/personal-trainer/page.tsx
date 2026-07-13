@@ -2,16 +2,63 @@ import { prisma } from "@/lib/prisma";
 import ClassesClient from "./ClassesClient";
 import { auth } from "@clerk/nextjs/server";
 
-export default async function ClassesPage() {
+export default async function ClassesPage(props: { searchParams: Promise<{ period?: string }> }) {
+  const searchParams = await props.searchParams;
+  const period = searchParams.period || "today";
+
   const { userId } = await auth();
   const currentUser = await prisma.user.findUnique({
     where: { clerkUserId: userId! },
     select: { id: true, role: true }
   });
 
-  const sessionWhereClause = currentUser?.role === "TRAINER" 
+  const now = new Date();
+  const utcOffset = 7 * 60 * 60 * 1000;
+  const localNow = new Date(now.getTime() + utcOffset);
+
+  let startDate: Date | undefined = undefined;
+  let endDate: Date | undefined = undefined;
+
+  if (period === "today") {
+    const startOfTodayLocal = new Date(localNow);
+    startOfTodayLocal.setUTCHours(0, 0, 0, 0);
+    startDate = new Date(startOfTodayLocal.getTime() - utcOffset);
+    
+    const endOfTodayLocal = new Date(localNow);
+    endOfTodayLocal.setUTCHours(23, 59, 59, 999);
+    endDate = new Date(endOfTodayLocal.getTime() - utcOffset);
+  } else if (period === "week") {
+    const startOfWeekLocal = new Date(localNow);
+    const day = startOfWeekLocal.getUTCDay();
+    const diff = startOfWeekLocal.getUTCDate() - day + (day === 0 ? -6 : 1);
+    startOfWeekLocal.setUTCDate(diff);
+    startOfWeekLocal.setUTCHours(0, 0, 0, 0);
+    startDate = new Date(startOfWeekLocal.getTime() - utcOffset);
+    
+    const endOfWeekLocal = new Date(startOfWeekLocal);
+    endOfWeekLocal.setUTCDate(endOfWeekLocal.getUTCDate() + 6);
+    endOfWeekLocal.setUTCHours(23, 59, 59, 999);
+    endDate = new Date(endOfWeekLocal.getTime() - utcOffset);
+  } else if (period === "month") {
+    const startOfMonthLocal = new Date(localNow);
+    startOfMonthLocal.setUTCDate(1);
+    startOfMonthLocal.setUTCHours(0, 0, 0, 0);
+    startDate = new Date(startOfMonthLocal.getTime() - utcOffset);
+    
+    const endOfMonthLocal = new Date(localNow);
+    endOfMonthLocal.setUTCMonth(endOfMonthLocal.getUTCMonth() + 1);
+    endOfMonthLocal.setUTCDate(0);
+    endOfMonthLocal.setUTCHours(23, 59, 59, 999);
+    endDate = new Date(endOfMonthLocal.getTime() - utcOffset);
+  }
+
+  const sessionWhereClause: any = currentUser?.role === "TRAINER" 
     ? { trainerId: currentUser.id }
     : {};
+
+  if (startDate && endDate) {
+    sessionWhereClause.schedule = { gte: startDate, lte: endDate };
+  }
 
   const sessions = await prisma.pTSession.findMany({
     where: sessionWhereClause,
@@ -41,10 +88,6 @@ export default async function ClassesPage() {
   });
 
   // Fetch "Today's" schedule properly bounded in WIB (UTC+7)
-  const now = new Date();
-  const utcOffset = 7 * 60 * 60 * 1000;
-  const localNow = new Date(now.getTime() + utcOffset);
-  
   const startOfTodayLocal = new Date(localNow);
   startOfTodayLocal.setUTCHours(0, 0, 0, 0);
   const startOfToday = new Date(startOfTodayLocal.getTime() - utcOffset);
@@ -64,7 +107,7 @@ export default async function ClassesPage() {
 
   const todayBookings = await prisma.pTSession.findMany({
     where: {
-      ...sessionWhereClause,
+      ...(currentUser?.role === "TRAINER" ? { trainerId: currentUser.id } : {}),
       schedule: { gte: startOfToday, lte: endOfToday }
     },
     include: {
@@ -137,5 +180,5 @@ export default async function ClassesPage() {
 
   mergedTodaySessions.sort((a, b) => a.timeStr.localeCompare(b.timeStr));
 
-  return <ClassesClient initialSessions={formattedSessions} userRole={currentUser?.role || "ADMIN_KASIR"} initialSlots={scheduleSlots as any} trainers={trainers} todaySessions={mergedTodaySessions} />;
+  return <ClassesClient initialSessions={formattedSessions} userRole={currentUser?.role || "ADMIN_KASIR"} initialSlots={scheduleSlots as any} trainers={trainers} todaySessions={mergedTodaySessions} activePeriod={period} />;
 }

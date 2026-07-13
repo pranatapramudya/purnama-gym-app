@@ -20,9 +20,10 @@ Untuk mencegah masalah UX *horizontal scrolling* pada perangkat genggam, sistem 
 ### 🧩 1.2 Component & Hook Architecture
 Aplikasi mengadopsi pendekatan *custom hooks* untuk abstraksi logika kompleks yang berulang, menjamin kode komponen klien tetap bersih dan terfokus pada presentasi UI.
 - **`useResponsivePagination` Hook:** Hook utama penggerak fitur *Global Responsive Pagination*. Hook ini mendengarkan perubahan *viewport* (`window.innerWidth`) secara aman-SSR (terisolasi dalam `useEffect`). Jika lebar layar < 768px, batas data dipotong menjadi 5 item (mencegah *scroll fatigue*), sebaliknya 10 item pada *desktop*. Hook langsung mengeksekusi logika *slicing* pada memori tanpa membebani panggilan *database* berulang untuk *dataset* skala menengah.
+- **State Management Strategy (URL-Based State):** Filter periode laporan (misal: "Bulan Ini" pada Scanner/PT) diikat secara ketat pada parameter URL (`?period=month`) ketimbang *local state*. Pola ini, yang dikombinasikan dengan `React.useTransition` dan `useRouter()`, menjamin navigasi *seamless*, *non-blocking UI update*, serta memungkinkan administrator untuk membagikan tautan URL laporan yang spesifik.
 
 ### 🕰️ 1.3 Timezone Handling Strategy (WIB Enforcement)
-Seluruh logika waktu (`Date` parsing, kadaluwarsa sesi, `Auto-Selesai` jadwal PT) tidak pernah bergantung pada zona waktu perangkat pengguna lokal. Semua perhitungan di-enforce ke zona waktu **Asia/Jakarta (WIB / UTC+7)** di sisi peladen (*server-side*). Hal ini mencegah anomali saat pengguna mengakses aplikasi dari zona waktu berbeda atau mencoba mencurangi validasi berbasis `new Date()`.
+Seluruh logika waktu (`Date` parsing, kadaluwarsa sesi, `Auto-Selesai` jadwal PT, hingga batas kueri pelaporan) tidak pernah bergantung pada zona waktu perangkat pengguna lokal atau bawaan *server*. Semua perhitungan *server-side* (seperti `startOfDay`, `startOfWeek`, `startOfMonth`) secara dinamis di-kalkulasi dan dikalibrasi ketat ke zona waktu **Asia/Jakarta (WIB / UTC+7)** menggunakan manipulasi *offset* eksplisit. Hal ini menjamin resiliensi absolut terhadap anomali perbedaan zona waktu global, mencegah fenomena *data-bleeding*, dan melindungi pelaporan dari *bug offset* kronis yang lumrah terjadi pada *UTC-default serverless environments* (seperti Vercel).
 
 ----
 

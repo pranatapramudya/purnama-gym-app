@@ -59,7 +59,7 @@ npm run dev
 - `/lib` - Core configurations (Prisma Client, dll.)
 - `/prisma` - Database schema and configurations
 
-## 🌟 Fitur Utama & Pembaruan Terkini (Versi 4.49)
+## 🌟 Fitur Utama & Pembaruan Terkini (Versi 4.53)
 *Sistem kini beroperasi penuh dengan skalabilitas tingkat Enterprise:*
 **User Roles yang Didukung:** Member, Admin, Superadmin, dan Trainer.
 
@@ -71,14 +71,16 @@ npm run dev
 
 ### ⚡ Core Features
 
-1. **Sistem Harga Dinamis (Snapshot Slot Pricing):** Manajemen harga PT tidak lagi menggunakan master global. Setiap slot memiliki harga dan diskon independen yang disimpan sebagai *snapshot* (Immutable Pricing), mencegah kebocoran data harga (*Ghost Pricing*) di frontend.
-2. **Universal QR Code & Pemindai Biodata Pintar:** ID Member (misal: `M-RGAO`) dipetakan dalam QR Code dinamis berbasis URL. Scanner internal cerdas mendeteksi QR, melakukan pencarian ke *database* (`endsWith` fallback), dan memunculkan Kartu Biodata interaktif (Nama, Status VIP, Notifikasi Sesi PT) sekaligus mencatat riwayat Check-in.
-3. **Analitik Dashboard Real-Time (Zona Waktu WIB):** Metrik operasional (Pendapatan, Jumlah Check-in, Sesi PT) dihitung sangat akurat dengan kalibrasi batas zona waktu (`Asia/Jakarta`), mencegah *bug offset* UTC pada larut malam.
-4. **Antarmuka (UI/UX) Pro-Level:** Kartu Member PT dengan hierarki tipografi premium, transisi desain list-view modern, *backdrop blur*, dan stiker diskon interaktif.
-5. **Autentikasi & Routing Cerdas:** *Hidden Trigger* di *footer* publik untuk login rahasia admin. Pemisahan tata letak (Nested Layout B2B SaaS) antara portal kasir dan dasbor *mobile-first* member.
-6. **Bypass Keterbatasan IAM (Clerk):** *Custom Onboarding Flow* menyimpan atribut krusial (`phoneNumber`, `address`) langsung ke Neon DB menggunakan operasi *Atomic Upsert* yang tangguh terhadap `Unique constraint failed`.
-7. **Modul Point-of-Sale (POS) Hibrida:** Proses *checkout* paket langganan dan kelas PT dikelola secara *Offline-First*. Pembayaran diproses di meja Kasir untuk menekan biaya potongan *Payment Gateway*.
-8. **Proteksi Anti Double-Booking & Anti-Looping:** Logika backend mengunci tombol pembelian jika status VIP aktif, dan *greyed-out* slot waktu PT jika kuota maksimum (`maxCapacity`) telah terpenuhi.
+1. **Advanced Operational Reporting:** Dynamic period filters (Hari Ini, Minggu Ini, Bulan Ini, Semua) for Scanner and PT modules, providing instant historical summaries and aggregated counts.
+2. **Timezone Resiliency:** Strict server-side `Asia/Jakarta` (UTC+7) enforcement to prevent data-bleeding and date-offset bugs typical in UTC-default serverless environments (like Vercel).
+3. **Sistem Harga Dinamis (Snapshot Slot Pricing):** Manajemen harga PT tidak lagi menggunakan master global. Setiap slot memiliki harga dan diskon independen yang disimpan sebagai *snapshot* (Immutable Pricing), mencegah kebocoran data harga (*Ghost Pricing*) di frontend.
+4. **Universal QR Code & Pemindai Biodata Pintar:** ID Member (misal: `M-RGAO`) dipetakan dalam QR Code dinamis berbasis URL. Scanner internal cerdas mendeteksi QR, melakukan pencarian ke *database* (`endsWith` fallback), dan memunculkan Kartu Biodata interaktif (Nama, Status VIP, Notifikasi Sesi PT) sekaligus mencatat riwayat Check-in.
+5. **Analitik Dashboard Real-Time (Zona Waktu WIB):** Metrik operasional (Pendapatan, Jumlah Check-in, Sesi PT) dihitung sangat akurat dengan kalibrasi batas zona waktu (`Asia/Jakarta`), mencegah *bug offset* UTC pada larut malam.
+6. **Antarmuka (UI/UX) Pro-Level:** Kartu Member PT dengan hierarki tipografi premium, transisi desain list-view modern, *backdrop blur*, dan stiker diskon interaktif.
+7. **Autentikasi & Routing Cerdas:** *Hidden Trigger* di *footer* publik untuk login rahasia admin. Pemisahan tata letak (Nested Layout B2B SaaS) antara portal kasir dan dasbor *mobile-first* member.
+8. **Bypass Keterbatasan IAM (Clerk):** *Custom Onboarding Flow* menyimpan atribut krusial (`phoneNumber`, `address`) langsung ke Neon DB menggunakan operasi *Atomic Upsert* yang tangguh terhadap `Unique constraint failed`.
+9. **Modul Point-of-Sale (POS) Hibrida:** Proses *checkout* paket langganan dan kelas PT dikelola secara *Offline-First*. Pembayaran diproses di meja Kasir untuk menekan biaya potongan *Payment Gateway*.
+10. **Proteksi Anti Double-Booking & Anti-Looping:** Logika backend mengunci tombol pembelian jika status VIP aktif, dan *greyed-out* slot waktu PT jika kuota maksimum (`maxCapacity`) telah terpenuhi.
 
 ## 🛡 License
 Premium License - Personal and Commercial use for your own SaaS products.
