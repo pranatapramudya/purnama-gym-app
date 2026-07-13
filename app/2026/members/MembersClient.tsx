@@ -20,6 +20,7 @@ interface Member {
   activeUntil: string | null;
   joinDate: string;
   status: string;
+  isArchived: boolean;
 }
 
 export default function MembersClient({ 
@@ -30,6 +31,7 @@ export default function MembersClient({
   packages: { id: string; name: string; price: number; durationMonths: number }[]
 }) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"ACTIVE" | "ARCHIVED">("ACTIVE");
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: "success" | "error" }>({ visible: false, message: "", type: "success" });
   const [editModal, setEditModal] = useState<Member | null>(null);
@@ -50,11 +52,9 @@ export default function MembersClient({
   const [addName, setAddName] = useState("");
   const [addEmail, setAddEmail] = useState("");
   const [addPhone, setAddPhone] = useState("");
+  const [addAddress, setAddAddress] = useState("");
   const [addRole, setAddRole] = useState<Role>("MEMBER");
   const [isAdding, setIsAdding] = useState(false);
-  const [addEmailError, setAddEmailError] = useState("");
-  const [addExistingUserId, setAddExistingUserId] = useState<string | null>(null);
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   // Unified Registration & POS State (VIP Packages Only)
   const [addType, setAddType] = useState(packages[0]?.id || "");
@@ -93,16 +93,18 @@ export default function MembersClient({
   };
 
   const filteredMembers = initialMembers.filter(
-    (m) =>
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.email.toLowerCase().includes(search.toLowerCase())
+    (m) => {
+      const matchesSearch = m.name.toLowerCase().includes(search.toLowerCase()) || m.email.toLowerCase().includes(search.toLowerCase());
+      const matchesTab = activeTab === "ACTIVE" ? !m.isArchived : m.isArchived;
+      return matchesSearch && matchesTab;
+    }
   );
 
   const { currentPage, totalPages, setCurrentPage, paginatedData } = useResponsivePagination(filteredMembers);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, setCurrentPage]);
+  }, [search, activeTab, setCurrentPage]);
 
   const handleEditProfile = (member: Member) => {
     setEditModal(member);
@@ -149,7 +151,7 @@ export default function MembersClient({
       method: addMethod,
       amount: Number(addAmount),
       description: addDesc,
-      existingUserId: addExistingUserId || undefined
+      address: addAddress
     });
     setIsAdding(false);
 
@@ -159,6 +161,7 @@ export default function MembersClient({
       setAddName("");
       setAddEmail("");
       setAddPhone("");
+      setAddAddress("");
       if (packages.length > 0) {
         setAddType(packages[0].id);
         handleAddAmountChange(packages[0].price.toString());
@@ -170,21 +173,6 @@ export default function MembersClient({
     }
   };
 
-  const handleCheckEmail = async () => {
-    if (!addEmail || addEmailError) return;
-    setIsCheckingEmail(true);
-    const res = await checkExistingUserByEmail(addEmail);
-    setIsCheckingEmail(false);
-    if (res.success && res.user) {
-      setAddName(res.user.name || "");
-      setAddPhone(res.user.phoneNumber || "");
-      setAddExistingUserId(res.user.id);
-      setToast({ visible: true, message: "Data ditemukan dan otomatis terisi.", type: "success" });
-    } else {
-      setAddExistingUserId(null);
-      setToast({ visible: true, message: "Data tidak ditemukan. Silakan isi manual.", type: "error" });
-    }
-  };
 
   const columns = [
     {
@@ -277,7 +265,6 @@ export default function MembersClient({
           <button
             onClick={() => {
               setIsAddModalOpen(true);
-              setAddExistingUserId(null); // Reset when opening
             }}
             className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl transition-colors shadow-sm shadow-emerald-500/20"
           >
@@ -287,16 +274,32 @@ export default function MembersClient({
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative max-w-md mb-6">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input
-          type="text"
-          placeholder="Cari nama atau email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-300 transition-all"
-        />
+      {/* Filters & Search */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+          <button
+            onClick={() => setActiveTab("ACTIVE")}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === "ACTIVE" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+          >
+            Member Aktif
+          </button>
+          <button
+            onClick={() => setActiveTab("ARCHIVED")}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === "ARCHIVED" ? "bg-white text-emerald-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+          >
+            Arsip Member
+          </button>
+        </div>
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari nama atau email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 transition-all text-slate-900"
+          />
+        </div>
       </div>
 
       {/* Data Table */}
@@ -463,9 +466,9 @@ export default function MembersClient({
                   setViewModal(null);
                   setMemberToDelete(viewModal);
                 }} 
-                className="flex-1 px-4 py-3 text-sm font-semibold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                className={`flex-1 px-4 py-3 text-sm font-semibold rounded-xl transition-colors ${viewModal.isArchived ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" : "text-amber-600 bg-amber-50 hover:bg-amber-100"}`}
               >
-                Hapus Member
+                {viewModal.isArchived ? "Pulihkan Member" : "Arsipkan Member"}
               </button>
             </div>
           </div>
@@ -494,33 +497,15 @@ export default function MembersClient({
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Email *</label>
-                  <div className="flex gap-2">
-                    <input type="email" value={addEmail} onChange={e => {
-                      const val = e.target.value;
-                      setAddEmail(val);
-                      setAddExistingUserId(null); // Reset if email changes
-                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                      if (!emailRegex.test(val) && val.length > 0) {
-                        setAddEmailError("Format email tidak valid.");
-                      } else {
-                        setAddEmailError("");
-                      }
-                    }} className={`w-full px-3 py-2.5 bg-white border rounded-lg text-sm focus:outline-none text-slate-900 ${addEmailError ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300'}`} required />
-                    <button 
-                      type="button" 
-                      onClick={handleCheckEmail}
-                      disabled={isCheckingEmail || !addEmail || !!addEmailError}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap disabled:opacity-50 flex items-center gap-1 border border-slate-200"
-                    >
-                      {isCheckingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                      Cek Data
-                    </button>
-                  </div>
-                  {addEmailError && <p className="text-xs text-red-500 mt-1">{addEmailError}</p>}
+                  <input type="email" value={addEmail} onChange={e => setAddEmail(e.target.value)} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 text-slate-900" required />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Nomor Telepon (Opsional)</label>
-                  <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300" />
+                  <input type="tel" value={addPhone} onChange={e => setAddPhone(e.target.value)} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 text-slate-900" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Alamat (Opsional)</label>
+                  <textarea value={addAddress} onChange={e => setAddAddress(e.target.value)} rows={2} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300 text-slate-900" />
                 </div>
               </div>
 
@@ -581,7 +566,7 @@ export default function MembersClient({
               <button onClick={() => setIsAddModalOpen(false)} className="flex-1 px-4 py-3 text-sm font-semibold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors">
                 Batal
               </button>
-              <button onClick={handleAddMember} disabled={isAdding || !!addEmailError} className="flex-[2] flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50">
+              <button onClick={handleAddMember} disabled={isAdding} className="flex-[2] flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50">
                 {isAdding ? <Loader2 className="w-5 h-5 animate-spin" /> : "Proses & Bayar"}
               </button>
             </div>
@@ -589,22 +574,24 @@ export default function MembersClient({
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Archive/Restore Confirmation Modal */}
       {memberToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => !isDeleting && setMemberToDelete(null)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-[scaleIn_0.25s_ease-out]">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                <Trash2 className="w-6 h-6 text-red-600" />
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${memberToDelete.isArchived ? "bg-emerald-100" : "bg-amber-100"}`}>
+                {memberToDelete.isArchived ? <Plus className="w-6 h-6 text-emerald-600" /> : <Trash2 className="w-6 h-6 text-amber-600" />}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Hapus Member?</h3>
+                <h3 className="text-lg font-bold text-slate-900">{memberToDelete.isArchived ? "Pulihkan Member?" : "Arsipkan Member?"}</h3>
                 <p className="text-sm font-semibold text-slate-700 truncate">{memberToDelete.name}</p>
               </div>
             </div>
             <p className="text-sm text-slate-500 mb-6">
-              Apakah Anda yakin ingin menghapus member ini? Tindakan ini tidak dapat dibatalkan dan semua data terkait member ini akan terhapus.
+              {memberToDelete.isArchived 
+                ? "Apakah Anda yakin ingin memulihkan member ini? Member akan kembali muncul di daftar aktif."
+                : "Apakah Anda yakin ingin mengarsipkan member ini? Data transaksi tidak akan terhapus, namun member akan disembunyikan dari daftar aktif."}
             </p>
             <div className="flex gap-3">
               <button 
@@ -617,21 +604,23 @@ export default function MembersClient({
               <button 
                 onClick={async () => {
                   setIsDeleting(true);
-                  const { deleteMembership } = await import("@/app/actions/admin");
-                  const res = await deleteMembership(memberToDelete.id);
+                  const { deleteMembership, restoreMembership } = await import("@/app/actions/admin");
+                  const res = memberToDelete.isArchived 
+                    ? await restoreMembership(memberToDelete.id) 
+                    : await deleteMembership(memberToDelete.id);
                   setIsDeleting(false);
                   if (res.success) {
-                    setToast({ visible: true, message: "Member berhasil dihapus.", type: "success" });
+                    setToast({ visible: true, message: `Member berhasil ${memberToDelete.isArchived ? "dipulihkan" : "diarsipkan"}.`, type: "success" });
                     setMemberToDelete(null);
                     router.refresh();
                   } else {
-                    setToast({ visible: true, message: res.error || "Gagal menghapus member", type: "error" });
+                    setToast({ visible: true, message: res.error || "Gagal memproses member", type: "error" });
                   }
                 }} 
                 disabled={isDeleting}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50"
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-white rounded-xl transition-colors shadow-sm disabled:opacity-50 ${memberToDelete.isArchived ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-500 hover:bg-amber-600"}`}
               >
-                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Yakin Hapus"}
+                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : (memberToDelete.isArchived ? "Yakin Pulihkan" : "Yakin Arsipkan")}
               </button>
             </div>
           </div>

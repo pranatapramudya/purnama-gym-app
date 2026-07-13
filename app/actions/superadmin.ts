@@ -86,7 +86,7 @@ export async function deleteStaffAccount(userId: string, targetClerkUserId: stri
 
     const superAdmin = await prisma.user.findUnique({
       where: { clerkUserId: currentClerkUserId },
-      select: { role: true }
+      select: { id: true, role: true }
     });
 
     if (!superAdmin || superAdmin.role !== "SUPER_ADMIN") {
@@ -103,11 +103,32 @@ export async function deleteStaffAccount(userId: string, targetClerkUserId: stri
     } catch (err: any) {
       console.warn("User already missing from Auth provider or deletion failed, proceeding with local DB cleanup", err);
     }
+
+    // Step 1: Unlink Financial Records (Data Preservation)
+    // Detach from Transaction as admin
+    await prisma.transaction.updateMany({ where: { adminId: userId }, data: { adminId: null } });
+
+    // Detach from PTSession & PTScheduleSlot as trainer
+    await prisma.pTSession.updateMany({ where: { trainerId: userId }, data: { trainerId: null } });
+    await prisma.pTScheduleSlot.updateMany({ where: { trainerId: userId }, data: { trainerId: null } });
+
+    // CashFlow requires a non-null adminId, reassign to SuperAdmin
+    if (superAdmin?.id) {
+      await prisma.cashFlow.updateMany({ where: { adminId: userId }, data: { adminId: superAdmin.id } });
+    }
+
+    // Reassign any user transactions to SuperAdmin (fallback for safe hard delete)
+    if (superAdmin?.id) {
+      await prisma.transaction.updateMany({ where: { userId: userId }, data: { userId: superAdmin.id } });
+    }
     
-    await prisma.user.update({ 
-      where: { id: userId },
-      data: { role: 'MEMBER' }
-    });
+    // Clear user references
+    await prisma.classBooking.deleteMany({ where: { userId: userId } });
+    await prisma.checkIn.deleteMany({ where: { userId: userId } });
+    await prisma.pTSession.deleteMany({ where: { memberId: userId } });
+
+    // Step 3: Hard Delete Prisma Record
+    await prisma.user.delete({ where: { id: userId } });
 
     return { success: true };
   } catch (error: any) {

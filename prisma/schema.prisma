@@ -34,6 +34,7 @@ model User {
   address     String?
   role        Role      @default(MEMBER)
   endDate     DateTime? // Kapan membership berakhir
+  isArchived  Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

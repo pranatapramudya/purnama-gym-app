@@ -118,15 +118,28 @@ export async function updateMembership(userId: string, data: { role: Role; endDa
 export async function deleteMembership(userId: string) {
   await verifyAdmin();
   try {
-    // Delete related records to prevent foreign key constraint failures if necessary
-    // E.g., transactions, check-ins, etc.
-    await prisma.user.delete({
+    await prisma.user.update({
       where: { id: userId },
+      data: { isArchived: true }
     });
     revalidatePath("/2026/members");
     return { success: true };
   } catch (error: any) {
-    return { success: false, error: "Gagal menghapus member: " + error.message };
+    return { success: false, error: "Gagal mengarsipkan member: " + error.message };
+  }
+}
+
+export async function restoreMembership(userId: string) {
+  await verifyAdmin();
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isArchived: false }
+    });
+    revalidatePath("/2026/members");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: "Gagal memulihkan member: " + error.message };
   }
 }
 
@@ -385,6 +398,7 @@ export async function createMemberManually(data: {
   method: string;
   amount: number;
   description: string;
+  address: string;
   existingUserId?: string;
 }) {
   const admin = await verifyAdmin();
@@ -417,6 +431,7 @@ export async function createMemberManually(data: {
           data: {
             role: data.role,
             endDate: endDate,
+            address: data.address || undefined
           }
         });
       } else {
@@ -428,6 +443,7 @@ export async function createMemberManually(data: {
             name: data.name,
             phoneNumber: data.phone,
             role: data.role,
+            address: data.address,
             endDate: endDate,
             shortId: shortId,
           }

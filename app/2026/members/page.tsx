@@ -22,6 +22,7 @@ export default async function MembersPage(props: PageProps) {
     activeUntil: user.endDate ? user.endDate.toISOString() : null,
     joinDate: user.createdAt.toISOString(),
     status: (user.endDate && user.endDate >= new Date()) ? "Aktif" : "Nonaktif",
+    isArchived: user.isArchived,
   }));
 
   const packages = await prisma.membershipPackage.findMany({
