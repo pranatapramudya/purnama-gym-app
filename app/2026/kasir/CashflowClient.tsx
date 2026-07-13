@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Plus, ArrowUpCircle, ArrowDownCircle, Banknote, Calendar } from "lucide-react";
 import { useResponsivePagination } from "@/hooks/useResponsivePagination";
