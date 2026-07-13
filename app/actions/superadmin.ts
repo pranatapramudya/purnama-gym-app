@@ -98,10 +98,15 @@ export async function deleteStaffAccount(userId: string, targetClerkUserId: stri
     }
 
     const client = await clerkClient();
-    await client.users.deleteUser(targetClerkUserId);
+    try {
+      await client.users.deleteUser(targetClerkUserId);
+    } catch (err: any) {
+      console.warn("User already missing from Auth provider or deletion failed, proceeding with local DB cleanup", err);
+    }
     
-    await prisma.user.delete({ 
-      where: { id: userId } 
+    await prisma.user.update({ 
+      where: { id: userId },
+      data: { role: 'MEMBER' }
     });
 
     return { success: true };

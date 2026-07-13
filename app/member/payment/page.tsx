@@ -27,8 +27,8 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
       title: packageData.name,
       priceStr: `Rp ${packageData.price.toLocaleString("id-ID")}`,
       amount: packageData.price,
-      txType: "BULANAN_REGULAR", // Set as default, admin should manage VIP via package name if needed, or we can use isPopular for VIP
-      isDaily: false,
+      txType: packageData.durationMonths === 0 ? "HARIAN" : "BULANAN_VIP",
+      isDaily: packageData.durationMonths === 0,
     };
   } else {
     redirect("/member/packages");

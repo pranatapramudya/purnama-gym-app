@@ -16,6 +16,7 @@ export default async function PackagesPage() {
     return {
       id: pkg.id,
       duration: pkg.name,
+      durationMonths: pkg.durationMonths,
       priceValue: pkg.price,
       price: `Rp ${pkg.price.toLocaleString("id-ID")}`,
       originalPriceValue: pkg.originalPrice,
@@ -33,8 +34,8 @@ export default async function PackagesPage() {
           &larr;
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Paket VIP</h1>
-          <p className="text-sm text-slate-500 mt-1">Pilih durasi membershipmu</p>
+          <h1 className="text-2xl font-bold text-slate-900">Paket & Visit Harian</h1>
+          <p className="text-sm text-slate-500 mt-1">Pilih durasi paket atau kunjungan harian</p>
         </div>
       </header>
 
@@ -55,9 +56,14 @@ export default async function PackagesPage() {
               }`}
             >
               <div>
-                {pkg.isPopular && (
+                {pkg.isPopular && pkg.durationMonths > 0 && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm whitespace-nowrap">
                     <Star className="w-3 h-3 fill-current" /> BEST SELLER
+                  </div>
+                )}
+                {pkg.durationMonths === 0 && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-[10px] font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-sm whitespace-nowrap">
+                    VISIT HARIAN
                   </div>
                 )}
                 <div className="text-sm font-semibold text-slate-900 mt-1">{pkg.duration}</div>

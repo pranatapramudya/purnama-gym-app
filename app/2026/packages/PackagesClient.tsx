@@ -22,6 +22,7 @@ export default function PackagesClient({ initialPackages }: { initialPackages: P
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDailyModal, setIsDailyModal] = useState(false);
   
   const [editId, setEditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -34,7 +35,8 @@ export default function PackagesClient({ initialPackages }: { initialPackages: P
     discountPercent: 0,
   });
 
-  const handleOpenModal = (pkg?: PackageItem) => {
+  const handleOpenModal = (pkg?: PackageItem, isDaily: boolean = false) => {
+    setIsDailyModal(isDaily || (pkg?.durationMonths === 0));
     if (pkg) {
       setEditId(pkg.id);
       let discount = 0;
@@ -53,7 +55,7 @@ export default function PackagesClient({ initialPackages }: { initialPackages: P
       });
     } else {
       setEditId(null);
-      setFormData({ name: "", durationMonths: 1, price: 0, isPopular: false, description: "", originalPrice: 0, discountPercent: 0 });
+      setFormData({ name: isDaily ? "Visit 1 Hari" : "", durationMonths: isDaily ? 0 : 1, price: 0, isPopular: false, description: "", originalPrice: 0, discountPercent: 0 });
     }
     setIsModalOpen(true);
   };
@@ -121,7 +123,9 @@ export default function PackagesClient({ initialPackages }: { initialPackages: P
       key: "duration",
       label: "Durasi",
       render: (item: PackageItem) => (
-        <span className="text-sm text-slate-700">{item.durationMonths} Bulan</span>
+        <span className="text-sm text-slate-700">
+          {item.durationMonths === 0 ? "Harian" : `${item.durationMonths} Bulan`}
+        </span>
       ),
     },
     {
@@ -175,12 +179,20 @@ export default function PackagesClient({ initialPackages }: { initialPackages: P
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Manajemen Paket</h1>
           <p className="text-slate-500 text-sm mt-1">{initialPackages.length} paket tersedia</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-rose-500 rounded-xl hover:bg-rose-600 transition-colors shadow-sm shadow-rose-200"
-        >
-          <Plus className="w-4 h-4" /> Tambah Paket
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleOpenModal(undefined, true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Tambah Visit Harian
+          </button>
+          <button
+            onClick={() => handleOpenModal(undefined, false)}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-rose-500 rounded-xl hover:bg-rose-600 transition-colors shadow-sm shadow-rose-200"
+          >
+            <Plus className="w-4 h-4" /> Tambah Paket VIP
+          </button>
+        </div>
       </div>
 
       <DataTable columns={columns} data={initialPackages} emptyMessage="Belum ada paket" emptyDescription="Tambahkan paket membership pertama Anda." />
@@ -189,7 +201,9 @@ export default function PackagesClient({ initialPackages }: { initialPackages: P
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
             <div className="p-5 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900">{editId ? "Edit Paket" : "Tambah Paket"}</h2>
+              <h2 className="text-lg font-bold text-slate-900">
+                {editId ? "Edit Paket" : (isDailyModal ? "Tambah Visit Harian" : "Tambah Paket VIP")}
+              </h2>
             </div>
             <form onSubmit={handleSave} className="p-5 space-y-4">
               <div>
@@ -203,20 +217,22 @@ export default function PackagesClient({ initialPackages }: { initialPackages: P
                   className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Durasi (Bulan)</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  required
-                  value={formData.durationMonths ? formData.durationMonths.toString() : ""}
-                  onChange={(e) => {
-                    const rawValue = e.target.value.replace(/\D/g, "");
-                    setFormData({ ...formData, durationMonths: parseInt(rawValue) || 0 });
-                  }}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm"
-                />
-              </div>
+              {!isDailyModal && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Durasi (Bulan)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    value={formData.durationMonths ? formData.durationMonths.toString() : ""}
+                    onChange={(e) => {
+                      const rawValue = e.target.value.replace(/\D/g, "");
+                      setFormData({ ...formData, durationMonths: parseInt(rawValue) || 0 });
+                    }}
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Deskripsi Paket</label>
                 <textarea

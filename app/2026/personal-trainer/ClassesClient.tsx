@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { AdminToast, ToastType } from "@/components/admin/AdminToast";
 import { useResponsivePagination } from "@/hooks/useResponsivePagination";
 import { Pagination } from "@/components/ui/Pagination";
 import { CheckCircle2, Play, CheckSquare, Loader2, CalendarClock, Clock, Trash2 } from "lucide-react";
 import { confirmPTSession, startPTSession, finishPTSession } from "@/app/actions/admin";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import DateFilterDropdown from "@/components/ui/DateFilterDropdown";
 
 const timeOptions: string[] = [];
@@ -54,9 +54,31 @@ export default function ClassesClient({
   activePeriod?: string;
 }) { 
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" as ToastType });
   const [sessions, setSessions] = useState<PTSessionItem[]>(initialSessions);
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const initialDateStr = searchParams.get("date") || (() => {
+    const now = new Date();
+    const utcOffset = 7 * 60 * 60 * 1000;
+    const localNow = new Date(now.getTime() + utcOffset);
+    return localNow.toISOString().split("T")[0];
+  })();
+  const [monitoringDate, setMonitoringDate] = useState<string>(initialDateStr);
+  const [isPendingDate, startTransition] = useTransition();
+
+  const handleMonitoringDateChange = (newDateStr: string) => {
+    setMonitoringDate(newDateStr);
+    startTransition(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.set("date", newDateStr);
+      if (activePeriod) {
+        url.searchParams.set("period", activePeriod);
+      }
+      router.push(url.pathname + url.search);
+    });
+  };
   
   // Tabs: "JADWAL" | "PENGATURAN"
   const [activeTab, setActiveTab] = useState<"JADWAL" | "PENGATURAN">("JADWAL");
@@ -187,7 +209,7 @@ export default function ClassesClient({
   const pendingSessions = sessions.filter(s => s.status === "PENDING");
   const completedSessions = sessions.filter(s => s.status === "COMPLETED");
 
-  const { currentPage: completedPage, totalPages: completedTotalPages, setCurrentPage: setCompletedPage, paginatedData: paginatedCompleted } = useResponsivePagination(completedSessions);
+  const { currentPage: completedPage, itemsPerPage: completedItemsPerPage, totalPages: completedTotalPages, setCurrentPage: setCompletedPage, paginatedData: paginatedCompleted } = useResponsivePagination(completedSessions);
 
   const sortedSlots = [...slots].sort((a, b) => {
     const dateA = a.targetDate ? new Date(a.targetDate).getTime() : 0;
@@ -196,9 +218,9 @@ export default function ClassesClient({
     return a.startTime.localeCompare(b.startTime);
   });
 
-  const { currentPage: slotPage, totalPages: slotTotalPages, setCurrentPage: setSlotPage, paginatedData: paginatedSlots } = useResponsivePagination(sortedSlots);
+  const { currentPage: slotPage, itemsPerPage: slotItemsPerPage, totalPages: slotTotalPages, setCurrentPage: setSlotPage, paginatedData: paginatedSlots } = useResponsivePagination(sortedSlots);
 
-  const renderTodaySchedule = (item: any) => {
+  const renderTodaySchedule = (item: any, displayIndex?: number) => {
     let badgeText = "Slot Tersedia";
     let badgeClass = "bg-slate-100 text-slate-600";
     let actionBtn = null;
@@ -253,7 +275,7 @@ export default function ClassesClient({
         <div className="flex items-start gap-4">
           <div>
             <p className="text-sm md:text-base font-bold text-slate-900">
-              {item.isBooked ? item.memberName : "Slot Tersedia"}
+              {displayIndex !== undefined ? `${displayIndex}. ` : ""}{item.isBooked ? item.memberName : "Slot Tersedia"}
             </p>
             <p className="text-xs md:text-sm text-slate-500 flex items-center gap-1.5 mt-1">
               <CalendarClock className="w-3.5 h-3.5" />
@@ -308,7 +330,7 @@ export default function ClassesClient({
     );
   };
 
-  const renderCard = (session: PTSessionItem, action: "CONFIRM" | "START" | "FINISH" | "NONE") => {
+  const renderCard = (session: PTSessionItem, action: "CONFIRM" | "START" | "FINISH" | "NONE", displayIndex?: number) => {
     const d = new Date(session.schedule);
     const timeStr = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
     const dateStr = d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
@@ -318,7 +340,9 @@ export default function ClassesClient({
       <div key={session.id} className="bg-white border border-slate-200 rounded-2xl p-3 md:p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all hover:shadow-md">
         <div className="flex items-start gap-4">
           <div>
-            <p className="text-sm md:text-base font-bold text-slate-900">{session.memberName}</p>
+            <p className="text-sm md:text-base font-bold text-slate-900">
+              {displayIndex !== undefined ? `${displayIndex}. ` : ""}{session.memberName}
+            </p>
             <p className="text-xs md:text-sm text-slate-500 flex items-center gap-1.5 mt-1">
               <CalendarClock className="w-3.5 h-3.5" />
               {dateStr} • {timeStr} WIB
@@ -526,7 +550,8 @@ export default function ClassesClient({
                     </tr>
                   ) : (
                     paginatedSlots
-                      .map((s) => {
+                      .map((s, index) => {
+                        const displayIndex = (slotPage - 1) * slotItemsPerPage + index + 1;
                         const dateStr = s.targetDate 
                           ? new Date(s.targetDate).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })
                           : s.dayOfWeek;
@@ -545,7 +570,7 @@ export default function ClassesClient({
                             </td>
                             <td className="px-3 py-2.5 md:px-6 md:py-4 md:whitespace-nowrap flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
                               <span className="md:hidden text-xs font-bold text-slate-500">Trainer:</span>
-                              <span>{s.trainer?.name || s.trainerName || <span className="text-slate-400 italic">Bebas</span>}</span>
+                              <span>{displayIndex}. {s.trainer?.name || s.trainerName || <span className="text-slate-400 italic">Bebas</span>}</span>
                             </td>
                             <td className="px-3 py-2.5 md:px-6 md:py-4 md:whitespace-nowrap flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
                               <span className="md:hidden text-xs font-bold text-slate-500">Kuota:</span>
@@ -596,17 +621,35 @@ export default function ClassesClient({
 
           {/* Section 2: CONFIRMED (Today) */}
           <section>
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-base md:text-xl font-bold text-slate-900">Sesi Hari Ini</h2>
-              <span className="text-xs md:text-sm font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{todaySessions?.length || 0}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-2">
+                <h2 className="text-base md:text-xl font-bold text-slate-900">
+                  {searchParams.get("date") && searchParams.get("date") !== new Date(new Date().getTime() + 7*3600*1000).toISOString().split("T")[0] 
+                    ? `Sesi: ${new Date(monitoringDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` 
+                    : "Sesi Hari Ini"}
+                </h2>
+                <span className="text-xs md:text-sm font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{todaySessions?.length || 0}</span>
+              </div>
+              <div className="relative">
+                <input 
+                  type="date"
+                  value={monitoringDate}
+                  onChange={(e) => handleMonitoringDateChange(e.target.value)}
+                  disabled={isPendingDate}
+                  className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer disabled:opacity-50"
+                />
+                {isPendingDate && (
+                  <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-500 animate-spin" />
+                )}
+              </div>
             </div>
-            <div className="space-y-3">
+            <div className={`space-y-3 transition-opacity duration-200 ${isPendingDate ? 'opacity-50' : 'opacity-100'}`}>
               {!todaySessions || todaySessions.length === 0 ? (
                 <div className="p-3 md:p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                   Tidak ada jadwal PT untuk hari ini.
                 </div>
               ) : (
-                todaySessions.map(renderTodaySchedule)
+                todaySessions.map((s, index) => renderTodaySchedule(s, index + 1))
               )}
             </div>
           </section>
@@ -626,7 +669,7 @@ export default function ClassesClient({
                   Tidak ada booking baru.
                 </div>
               ) : (
-                pendingSessions.map(s => renderCard(s, "CONFIRM"))
+                pendingSessions.map((s, index) => renderCard(s, "CONFIRM", index + 1))
               )}
             </div>
           </section>
@@ -646,7 +689,10 @@ export default function ClassesClient({
                   Belum ada sesi yang selesai.
                 </div>
               ) : (
-                paginatedCompleted.map(s => renderCard(s, "NONE"))
+                paginatedCompleted.map((s, index) => {
+                  const displayIndex = (completedPage - 1) * completedItemsPerPage + index + 1;
+                  return renderCard(s, "NONE", displayIndex);
+                })
               )}
             </div>
             <Pagination 

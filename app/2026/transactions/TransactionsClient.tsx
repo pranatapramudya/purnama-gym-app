@@ -6,6 +6,8 @@ import { AdminToast, ToastType } from "@/components/admin/AdminToast";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { CheckCircle2, Clock, XCircle, Filter } from "lucide-react";
 import { verifyTransaction } from "@/app/actions/admin";
+import { useResponsivePagination } from "@/hooks/useResponsivePagination";
+import { Pagination } from "@/components/ui/Pagination";
 
 interface TransactionItem {
   id: string;
@@ -63,9 +65,19 @@ export default function TransactionsClient({
     ? initialTransactions
     : initialTransactions.filter((t) => t.status === filterStatus);
 
+  const { currentPage, itemsPerPage, totalPages, setCurrentPage, paginatedData } = useResponsivePagination(filteredTransactions);
+
   const pendingCount = initialTransactions.filter((t) => t.status === "PENDING").length;
 
   const columns = [
+    {
+      key: "no",
+      label: "NO",
+      render: (item: TransactionItem, index: number) => {
+        const displayIndex = (currentPage - 1) * itemsPerPage + index + 1;
+        return <span className="text-sm font-medium text-slate-500">{displayIndex}</span>;
+      },
+    },
     {
       key: "id",
       label: "ID",
@@ -214,7 +226,13 @@ export default function TransactionsClient({
       </div>
 
       {/* Data Table */}
-      <DataTable columns={columns} data={filteredTransactions} emptyMessage="Tidak ada transaksi" emptyDescription="Belum ada transaksi yang cocok dengan filter ini." />
+      <DataTable columns={columns} data={paginatedData} emptyMessage="Tidak ada transaksi" emptyDescription="Belum ada transaksi yang cocok dengan filter ini." />
+
+      <Pagination 
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
 
 
     </div>

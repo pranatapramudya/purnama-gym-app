@@ -385,6 +385,7 @@ export async function createMemberManually(data: {
   method: string;
   amount: number;
   description: string;
+  existingUserId?: string;
 }) {
   const admin = await verifyAdmin();
   try {
@@ -396,23 +397,43 @@ export async function createMemberManually(data: {
     const pkg = await prisma.membershipPackage.findUnique({ where: { id: data.packageId } });
     if (pkg) {
       transactionTypeString = pkg.name;
-      endDate.setMonth(endDate.getMonth() + pkg.durationMonths);
+      // If durationMonths is 0, it's Daily Visit (+1 day), else add months
+      if (pkg.durationMonths === 0) {
+        endDate.setDate(endDate.getDate() + 1);
+      } else {
+        endDate.setMonth(endDate.getMonth() + pkg.durationMonths);
+      }
     }
 
     const shortId = `PRN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     await prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          clerkUserId: dummyClerkId,
-          email: data.email,
-          name: data.name,
-          phoneNumber: data.phone,
-          role: data.role,
-          endDate: endDate,
-          shortId: shortId,
-        }
-      });
+      let targetUserId = data.existingUserId;
+
+      if (targetUserId) {
+        // Update existing user
+        await tx.user.update({
+          where: { id: targetUserId },
+          data: {
+            role: data.role,
+            endDate: endDate,
+          }
+        });
+      } else {
+        // Create new user
+        const newUser = await tx.user.create({
+          data: {
+            clerkUserId: dummyClerkId,
+            email: data.email,
+            name: data.name,
+            phoneNumber: data.phone,
+            role: data.role,
+            endDate: endDate,
+            shortId: shortId,
+          }
+        });
+        targetUserId = newUser.id;
+      }
 
       await tx.cashFlow.create({
         data: {
@@ -429,7 +450,7 @@ export async function createMemberManually(data: {
           type: transactionTypeString,
           method: data.method,
           status: "SUCCESS",
-          userId: newUser.id,
+          userId: targetUserId,
           adminId: admin.id
         }
       });
@@ -439,6 +460,19 @@ export async function createMemberManually(data: {
     revalidatePath("/2026/transactions");
     revalidatePath("/2026/dashboard");
     return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function checkExistingUserByEmail(email: string) {
+  await verifyAdmin();
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, name: true, phoneNumber: true }
+    });
+    return { success: true, user };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

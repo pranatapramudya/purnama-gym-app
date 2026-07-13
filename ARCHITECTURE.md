@@ -106,3 +106,17 @@ Setiap member memiliki "Kartu Digital" bertenaga QR Code yang unik. Admin di mej
 - **Alur QR -> URL -> Scanner -> Biodata Lookup:** Setiap E-Card VIP dan Regular mem-bypass ID bawaan sistem dengan `shortId` atau ID buatan (misal `M-RGAO`).
 - Payload QR Code dikemas dalam format URL (`https://[HOST]/verify/M-RGAO`) sehingga dapat dipindai oleh pemindai eksternal (mengarahkan ke *browser*) ATAU pemindai internal Admin (`/admin/scanner`).
 - Pemindai Internal secara otomatis mengekstraksi kode ID dari URL, melakukan kueri ke *database* (`endsWith` *fallback* untuk toleransi ketiadaan `shortId`), dan menahan pemindai untuk menampilkan **Kartu Biodata Modal** secara penuh, sebelum dilanjutkan ke pemindaian berikutnya.
+
+---
+
+## ⚙️ 7. Keputusan Arsitektur Teknis Kritis (Critical Architectural Decisions)
+Aplikasi berevolusi dengan kecepatan tinggi yang mengharuskan beberapa keputusan teknis fundamental untuk menjaga integritas dan performa sistem:
+
+### 🛡️ 7.1 Fault-Tolerant Deletions & Foreign Key Protection (Soft Delete)
+Menghapus akun staf (Admin/Trainer) secara permanen (`.delete()`) melalui Prisma akan menyebabkan pelanggaran `RESTRICT` pada *foreign key* karena staf tersebut mungkin terikat pada rekam jejak finansial (sebagai Kasir pada tabel Transaksi) atau historikal (sebagai instruktur di tabel PT Session). Alih-alih melakukan *hard delete*, sistem dengan aman mencegat proses penghapusan dari *Auth Provider* (Clerk), mencabut akses masuknya, lalu melakukan **Prisma Role Downgrade** (mengubah `role` menjadi `MEMBER`). Mekanisme *Soft Delete* ini secara brilian memutus akses sistem tanpa mengorbankan integritas data historis maupun finansial.
+
+### 🔢 7.2 Pagination-Aware Indexing
+Sistem menerapkan kalkulasi matematis global di seluruh tabel operasional (Transaksi, Buku Kas, Sesi PT) untuk menjaga penomoran sekuensial yang sempurna. Formula `(currentPage - 1) * itemsPerPage + index + 1` digunakan sehingga saat pengguna menavigasi ke halaman ke-2 atau ke-3, nomor urut tidak me-reset kembali ke angka 1 (misal: tetap berlanjut ke 11, 12, 13), memastikan konsistensi visual laporan *Enterprise*.
+
+### 📅 7.3 Daily Visit Data Modeling (Visit Harian)
+Alih-alih melakukan migrasi skema Prisma yang kompleks dan berisiko untuk mengakomodasi model langganan "Visit Harian" (1-Hari), sistem memanfaatkan bendera logika fungsional `durationMonths === 0`. Jika sebuah entitas `MembershipPackage` memiliki nilai durasi 0 bulan, aplikasi secara cerdas akan mengkategorikannya sebagai paket *Visit Harian* dan secara otomatis mengklasifikasikan transaksi tersebut menjadi `HARIAN`. Pendekatan ini menghemat kompleksitas *schema* selagi mempertahankan kapabilitas modul CRM terpadu yang memadukan member VIP dan pelanggan Harian di satu pintu Kasir yang sama.

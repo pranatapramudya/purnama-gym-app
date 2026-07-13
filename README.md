@@ -71,7 +71,10 @@ npm run dev
 
 ### ⚡ Core Features
 
-1. **Advanced Operational Reporting:** Dynamic period filters (Hari Ini, Minggu Ini, Bulan Ini, Semua) for Scanner and PT modules, providing instant historical summaries and aggregated counts.
+1. **Unified Member CRM:** Centralized management for both long-term VIPs and 1-Day Daily Visits ("Visit Harian") with an integrated profile sync/biodata viewer to prevent data entry redundancy at the cashier.
+2. **Future Session Monitoring:** Advanced calendar integration in the Personal Trainer module, allowing admins to break out of the "Today-only" view and monitor/manage slot availability for future dates.
+3. **Dynamic Sales Channels:** Dedicated CRUD pipeline for "Visit Harian" alongside VIP packages, mapped seamlessly to the frontend Member app.
+4. **Advanced Operational Reporting:** Dynamic period filters (Hari Ini, Minggu Ini, Bulan Ini, Semua) for Scanner and PT modules, providing instant historical summaries and aggregated counts.
 2. **Timezone Resiliency:** Strict server-side `Asia/Jakarta` (UTC+7) enforcement to prevent data-bleeding and date-offset bugs typical in UTC-default serverless environments (like Vercel).
 3. **Sistem Harga Dinamis (Snapshot Slot Pricing):** Manajemen harga PT tidak lagi menggunakan master global. Setiap slot memiliki harga dan diskon independen yang disimpan sebagai *snapshot* (Immutable Pricing), mencegah kebocoran data harga (*Ghost Pricing*) di frontend.
 4. **Universal QR Code & Pemindai Biodata Pintar:** ID Member (misal: `M-RGAO`) dipetakan dalam QR Code dinamis berbasis URL. Scanner internal cerdas mendeteksi QR, melakukan pencarian ke *database* (`endsWith` fallback), dan memunculkan Kartu Biodata interaktif (Nama, Status VIP, Notifikasi Sesi PT) sekaligus mencatat riwayat Check-in.

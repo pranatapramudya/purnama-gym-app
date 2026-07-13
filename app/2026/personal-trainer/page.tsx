@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import ClassesClient from "./ClassesClient";
 import { auth } from "@clerk/nextjs/server";
 
-export default async function ClassesPage(props: { searchParams: Promise<{ period?: string }> }) {
+export default async function ClassesPage(props: { searchParams: Promise<{ period?: string, date?: string }> }) {
   const searchParams = await props.searchParams;
   const period = searchParams.period || "today";
+  const dateParam = searchParams.date;
 
   const { userId } = await auth();
   const currentUser = await prisma.user.findUnique({
@@ -14,7 +15,14 @@ export default async function ClassesPage(props: { searchParams: Promise<{ perio
 
   const now = new Date();
   const utcOffset = 7 * 60 * 60 * 1000;
-  const localNow = new Date(now.getTime() + utcOffset);
+  let localNow = new Date(now.getTime() + utcOffset);
+
+  // If a date string is passed, we shift our "localNow" representation to that date
+  if (dateParam) {
+    const [y, m, d] = dateParam.split("-").map(Number);
+    // Use Noon to avoid boundary overlap
+    localNow = new Date(Date.UTC(y, m - 1, d, 12, 0, 0, 0));
+  }
 
   let startDate: Date | undefined = undefined;
   let endDate: Date | undefined = undefined;
@@ -97,12 +105,12 @@ export default async function ClassesPage(props: { searchParams: Promise<{ perio
   const endOfToday = new Date(endOfTodayLocal.getTime() - utcOffset);
 
   const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-  const todayDayOfWeek = days[localNow.getUTCDay()];
+  const targetDayOfWeek = days[localNow.getUTCDay()];
 
   const todaySlots = scheduleSlots.filter(s => 
     s.targetDate 
       ? new Date(s.targetDate).getTime() >= startOfToday.getTime() && new Date(s.targetDate).getTime() <= endOfToday.getTime()
-      : s.dayOfWeek === todayDayOfWeek
+      : s.dayOfWeek === targetDayOfWeek
   );
 
   const todayBookings = await prisma.pTSession.findMany({

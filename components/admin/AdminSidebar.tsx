@@ -34,7 +34,7 @@ const menuCategories = [
     items: [
       { href: "/2026/members", label: "Member", icon: Users, roles: ["admin_kasir", "super_admin"] },
       { href: "/2026/personal-trainer", label: "Personal Trainer", icon: CalendarDays, roles: ["super_admin", "trainer"] },
-      { href: "/2026/packages", label: "Paket VIP", icon: Package, roles: ["super_admin"] },
+      { href: "/2026/packages", label: "Paket VIP & Visit Harian", icon: Package, roles: ["super_admin"] },
     ]
   },
   {
@@ -122,7 +122,7 @@ export function AdminSidebar({ adminName, role = "member" }: AdminSidebarProps) 
                       }`}>
                         <Icon className="w-[16px] h-[16px]" />
                       </div>
-                      <span className="flex-1">{item.label}</span>
+                      <span className="flex-1 truncate">{item.label}</span>
                       {active && <ChevronRight className="w-3.5 h-3.5 opacity-50" />}
                     </Link>
                   );
@@ -197,7 +197,7 @@ export function AdminSidebar({ adminName, role = "member" }: AdminSidebarProps) 
                 }`}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{item.label}</span>
+                <span className="text-[10px] font-medium truncate w-full text-center px-1">{item.label}</span>
               </Link>
             );
           })}

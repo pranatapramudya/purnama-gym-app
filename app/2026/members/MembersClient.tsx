@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/admin/DataTable";
 import { AdminToast } from "@/components/admin/AdminToast";
 import { Search, UserPlus, MoreHorizontal, Shield, Crown, X, Loader2, Plus, Trash2 } from "lucide-react";
-import { updateMembership } from "@/app/actions/admin";
+import { updateMembership, checkExistingUserByEmail } from "@/app/actions/admin";
 import { Role } from "@prisma/client";
 import { useResponsivePagination } from "@/hooks/useResponsivePagination";
 import { Pagination } from "@/components/ui/Pagination";
@@ -15,6 +15,7 @@ interface Member {
   name: string;
   email: string;
   phone: string;
+  address: string;
   role: string;
   activeUntil: string | null;
   joinDate: string;
@@ -32,7 +33,7 @@ export default function MembersClient({
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState<{ visible: boolean; message: string; type: "success" | "error" }>({ visible: false, message: "", type: "success" });
   const [editModal, setEditModal] = useState<Member | null>(null);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [viewModal, setViewModal] = useState<Member | null>(null);
   const [memberToDelete, setMemberToDelete] = useState<Member | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -52,6 +53,8 @@ export default function MembersClient({
   const [addRole, setAddRole] = useState<Role>("MEMBER");
   const [isAdding, setIsAdding] = useState(false);
   const [addEmailError, setAddEmailError] = useState("");
+  const [addExistingUserId, setAddExistingUserId] = useState<string | null>(null);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   // Unified Registration & POS State (VIP Packages Only)
   const [addType, setAddType] = useState(packages[0]?.id || "");
@@ -145,7 +148,8 @@ export default function MembersClient({
       packageId: addType,
       method: addMethod,
       amount: Number(addAmount),
-      description: addDesc
+      description: addDesc,
+      existingUserId: addExistingUserId || undefined
     });
     setIsAdding(false);
 
@@ -163,6 +167,22 @@ export default function MembersClient({
       router.refresh();
     } else {
       setToast({ visible: true, message: res.error || "Gagal mendaftarkan member", type: "error" });
+    }
+  };
+
+  const handleCheckEmail = async () => {
+    if (!addEmail || addEmailError) return;
+    setIsCheckingEmail(true);
+    const res = await checkExistingUserByEmail(addEmail);
+    setIsCheckingEmail(false);
+    if (res.success && res.user) {
+      setAddName(res.user.name || "");
+      setAddPhone(res.user.phoneNumber || "");
+      setAddExistingUserId(res.user.id);
+      setToast({ visible: true, message: "Data ditemukan dan otomatis terisi.", type: "success" });
+    } else {
+      setAddExistingUserId(null);
+      setToast({ visible: true, message: "Data tidak ditemukan. Silakan isi manual.", type: "error" });
     }
   };
 
@@ -223,43 +243,16 @@ export default function MembersClient({
     },
     {
       key: "actions",
-      label: "Aksi",
+      label: "",
       className: "text-right",
       render: (item: Member) => (
-        <div className="relative flex justify-end">
+        <div className="flex items-center justify-end h-full">
           <button
-            onClick={() => setActiveDropdown(activeDropdown === item.id ? null : item.id)}
-            className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+            onClick={() => setViewModal(item)}
+            className="w-full md:w-auto px-4 py-2 md:px-3 md:py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm md:text-xs font-bold rounded-xl md:rounded-lg transition-colors flex items-center justify-center gap-2 md:gap-1.5 shadow-sm mt-4 md:mt-0"
           >
-            <MoreHorizontal className="w-4 h-4" />
+            🔍 Lihat Profil
           </button>
-          
-          {activeDropdown === item.id && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setActiveDropdown(null)} />
-              <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in zoom-in-95">
-                <button
-                  onClick={() => {
-                    setActiveDropdown(null);
-                    handleEditProfile(item);
-                  }}
-                  className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-semibold transition-colors"
-                >
-                  Edit Data
-                </button>
-                <div className="h-px bg-slate-100 my-1 mx-2" />
-                <button
-                  onClick={() => {
-                    setActiveDropdown(null);
-                    setMemberToDelete(item);
-                  }}
-                  className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-semibold transition-colors"
-                >
-                  Hapus Member
-                </button>
-              </div>
-            </>
-          )}
         </div>
       ),
     },
@@ -282,17 +275,20 @@ export default function MembersClient({
         </div>
         <div className="flex gap-4 items-center">
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => {
+              setIsAddModalOpen(true);
+              setAddExistingUserId(null); // Reset when opening
+            }}
             className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl transition-colors shadow-sm shadow-emerald-500/20"
           >
             <UserPlus className="w-4 h-4" />
-            Registrasi Member Baru
+            Registrasi VIP & Visit Harian
           </button>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="relative max-w-md">
+      <div className="relative max-w-md mb-6">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
           type="text"
@@ -397,13 +393,92 @@ export default function MembersClient({
         </div>
       )}
 
+      {/* View Biodata Modal */}
+      {viewModal && (
+        <div className="fixed inset-0 z-[80] flex items-end md:items-center justify-center sm:p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setViewModal(null)} />
+          <div className="relative bg-white rounded-t-3xl md:rounded-2xl shadow-2xl w-full max-w-md p-6 animate-[slideUp_0.25s_ease-out] md:animate-[scaleIn_0.25s_ease-out] max-h-[90vh] overflow-y-auto">
+            <style>{`
+              @keyframes slideUp {
+                from { opacity: 0; transform: translateY(100%); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl font-extrabold text-slate-900">Biodata Member</h3>
+              <button onClick={() => setViewModal(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                <div className="col-span-2">
+                  <p className="text-xs font-semibold text-slate-500 mb-0.5">Nama Lengkap</p>
+                  <p className="text-sm font-bold text-slate-900">{viewModal.name}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs font-semibold text-slate-500 mb-0.5">Email</p>
+                  <p className="text-sm font-bold text-slate-900">{viewModal.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-0.5">Nomor Telepon</p>
+                  <p className="text-sm font-bold text-slate-900">{viewModal.phone || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 mb-0.5">Status Member</p>
+                  <div className="mt-0.5">
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      viewModal.role === "MEMBER" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                    }`}>
+                      {viewModal.role === "MEMBER" ? "VIP" : "Regular"}
+                    </span>
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs font-semibold text-slate-500 mb-0.5">Alamat</p>
+                  <p className="text-sm font-bold text-slate-900">{viewModal.address}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs font-semibold text-slate-500 mb-0.5">Masa Aktif</p>
+                  <p className="text-sm font-bold text-slate-900">
+                    {viewModal.activeUntil ? new Date(viewModal.activeUntil).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => {
+                  setViewModal(null);
+                  handleEditProfile(viewModal);
+                }} 
+                className="flex-1 px-4 py-3 text-sm font-semibold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
+              >
+                Edit Data
+              </button>
+              <button 
+                onClick={() => {
+                  setViewModal(null);
+                  setMemberToDelete(viewModal);
+                }} 
+                className="flex-1 px-4 py-3 text-sm font-semibold text-red-600 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+              >
+                Hapus Member
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Member Modal (Unified Registration & POS) */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 animate-[scaleIn_0.25s_ease-out] max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-xl font-extrabold text-slate-900">Registrasi Member Baru Khusus VIP</h3>
+              <h3 className="text-xl font-extrabold text-slate-900">Registrasi VIP & Visit Harian</h3>
               <button onClick={() => setIsAddModalOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-200 transition-colors">
                 <X className="w-4 h-4" />
               </button>
@@ -419,16 +494,28 @@ export default function MembersClient({
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Email *</label>
-                  <input type="email" value={addEmail} onChange={e => {
-                    const val = e.target.value;
-                    setAddEmail(val);
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailRegex.test(val) && val.length > 0) {
-                      setAddEmailError("Format email tidak valid.");
-                    } else {
-                      setAddEmailError("");
-                    }
-                  }} className={`w-full px-3 py-2.5 bg-white border rounded-lg text-sm focus:outline-none text-slate-900 ${addEmailError ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300'}`} required />
+                  <div className="flex gap-2">
+                    <input type="email" value={addEmail} onChange={e => {
+                      const val = e.target.value;
+                      setAddEmail(val);
+                      setAddExistingUserId(null); // Reset if email changes
+                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                      if (!emailRegex.test(val) && val.length > 0) {
+                        setAddEmailError("Format email tidak valid.");
+                      } else {
+                        setAddEmailError("");
+                      }
+                    }} className={`w-full px-3 py-2.5 bg-white border rounded-lg text-sm focus:outline-none text-slate-900 ${addEmailError ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-slate-200 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-300'}`} required />
+                    <button 
+                      type="button" 
+                      onClick={handleCheckEmail}
+                      disabled={isCheckingEmail || !addEmail || !!addEmailError}
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-lg transition-colors whitespace-nowrap disabled:opacity-50 flex items-center gap-1 border border-slate-200"
+                    >
+                      {isCheckingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                      Cek Data
+                    </button>
+                  </div>
                   {addEmailError && <p className="text-xs text-red-500 mt-1">{addEmailError}</p>}
                 </div>
                 <div>
@@ -495,7 +582,7 @@ export default function MembersClient({
                 Batal
               </button>
               <button onClick={handleAddMember} disabled={isAdding || !!addEmailError} className="flex-[2] flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50">
-                {isAdding ? <Loader2 className="w-5 h-5 animate-spin" /> : "Daftarkan Member & Bayar"}
+                {isAdding ? <Loader2 className="w-5 h-5 animate-spin" /> : "Proses & Bayar"}
               </button>
             </div>
           </div>

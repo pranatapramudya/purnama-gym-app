@@ -17,6 +17,7 @@ export default async function MembersPage(props: PageProps) {
     name: user.name || "Member",
     email: user.email,
     phone: user.phoneNumber || "",
+    address: user.address || "-",
     role: user.role,
     activeUntil: user.endDate ? user.endDate.toISOString() : null,
     joinDate: user.createdAt.toISOString(),

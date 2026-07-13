@@ -50,7 +50,7 @@ export default function CashflowClient({ initialData, adminId, userRole }: Props
     return true; // all
   });
 
-  const { currentPage, totalPages, setCurrentPage, paginatedData } = useResponsivePagination(filteredData);
+  const { currentPage, itemsPerPage, totalPages, setCurrentPage, paginatedData } = useResponsivePagination(filteredData);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -171,6 +171,7 @@ export default function CashflowClient({ initialData, adminId, userRole }: Props
           <table className="w-full text-left border-collapse block md:table">
             <thead className="hidden md:table-header-group">
               <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                <th className="px-6 py-4 font-medium">NO</th>
                 <th className="px-6 py-4 font-medium">Tanggal</th>
                 <th className="px-6 py-4 font-medium">Tipe</th>
                 <th className="px-6 py-4 font-medium">Keterangan</th>
@@ -180,8 +181,14 @@ export default function CashflowClient({ initialData, adminId, userRole }: Props
             </thead>
             <tbody className="divide-y divide-slate-100 block md:table-row-group">
               {paginatedData.length > 0 ? (
-                paginatedData.map((item) => (
+                paginatedData.map((item, index) => {
+                  const displayIndex = (currentPage - 1) * itemsPerPage + index + 1;
+                  return (
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors block md:table-row mb-4 border border-slate-200 rounded-xl bg-white p-2 md:p-0 shadow-sm md:shadow-none md:mb-0 md:border-none md:rounded-none">
+                    <td className="px-3 py-2.5 md:px-6 md:py-4 whitespace-nowrap text-sm text-slate-500 font-medium flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none">
+                      <span className="md:hidden text-xs font-bold text-slate-500">NO:</span>
+                      <span>{displayIndex}</span>
+                    </td>
                     <td className="px-3 py-2.5 md:px-6 md:py-4 whitespace-nowrap text-sm text-slate-600 flex justify-between items-center block md:table-cell border-b border-slate-100 md:border-none last:border-none">
                       <span className="md:hidden text-xs font-bold text-slate-500">Tanggal:</span>
                       <span>{new Date(item.createdAt).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" })}</span>
@@ -209,7 +216,7 @@ export default function CashflowClient({ initialData, adminId, userRole }: Props
                       <span>{item.type === 'INCOME' ? '+' : '-'} Rp {item.amount.toLocaleString('id-ID')}</span>
                     </td>
                   </tr>
-                ))
+                )})
               ) : (
                 <tr className="block md:table-row">
                   <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-sm block md:table-cell">

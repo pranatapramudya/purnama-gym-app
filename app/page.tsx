@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
@@ -37,9 +37,6 @@ export default async function Home() {
       {/* --- NAVBAR --- */}
       <nav className="flex items-center justify-between px-4 py-4 md:px-12 md:py-6 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2 font-bold text-lg md:text-xl tracking-tighter shrink-0">
-          <div className="w-8 h-8 bg-gradient-to-tr from-emerald-500 to-emerald-400 rounded-lg flex items-center justify-center shadow-md">
-            <Sparkles className="text-white w-5 h-5" />
-          </div>
           <span className="text-slate-900 font-black tracking-tight">PURNAMA GYM</span>
         </div>
         
