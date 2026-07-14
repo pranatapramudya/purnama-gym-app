@@ -159,7 +159,6 @@ export function DateRangePicker({
           </div>
           <div className="p-3 bg-white">
             <Calendar
-              initialFocus
               mode="range"
               defaultMonth={date?.from}
               selected={date}
@@ -169,7 +168,6 @@ export function DateRangePicker({
               className="hidden sm:block"
             />
             <Calendar
-              initialFocus
               mode="range"
               defaultMonth={date?.from}
               selected={date}
