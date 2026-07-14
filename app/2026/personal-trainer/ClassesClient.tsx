@@ -7,7 +7,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { CheckCircle2, Play, CheckSquare, Loader2, CalendarClock, Clock, Trash2 } from "lucide-react";
 import { confirmPTSession, startPTSession, finishPTSession } from "@/app/actions/admin";
 import { useRouter, useSearchParams } from "next/navigation";
-import DateFilterDropdown from "@/components/ui/DateFilterDropdown";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 const timeOptions: string[] = [];
 for (let h = 6; h <= 22; h++) {
@@ -43,16 +43,14 @@ export default function ClassesClient({
   userRole,
   initialSlots,
   trainers,
-  todaySessions = [],
-  activePeriod
+  todaySessions = []
 }: { 
   initialSessions: PTSessionItem[];
   userRole: string;
   initialSlots: PTScheduleSlotItem[];
   trainers: { id: string; name: string | null; email: string }[];
   todaySessions?: any[];
-  activePeriod?: string;
-}) { 
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" as ToastType });
@@ -73,12 +71,10 @@ export default function ClassesClient({
     startTransition(() => {
       const url = new URL(window.location.href);
       url.searchParams.set("date", newDateStr);
-      if (activePeriod) {
-        url.searchParams.set("period", activePeriod);
-      }
-      router.push(url.pathname + url.search);
-    });
-  };
+        url.searchParams.set("date", newDateStr);
+        router.push(url.pathname + url.search);
+      });
+    };
   
   // Tabs: "JADWAL" | "PENGATURAN"
   const [activeTab, setActiveTab] = useState<"JADWAL" | "PENGATURAN">("JADWAL");
@@ -140,9 +136,7 @@ export default function ClassesClient({
     setCompletedPage(1);
   }, [initialSessions]);
 
-  const handlePeriodChange = (newPeriod: string) => {
-    router.push(`?period=${newPeriod}`);
-  };
+
 
   const handleAddSlot = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -676,12 +670,14 @@ export default function ClassesClient({
 
           {/* Section 4: COMPLETED (Recent) */}
           <section>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-2">
-                <h2 className="text-base md:text-xl font-bold text-slate-900">Sesi Selesai {activePeriod === "today" ? "(Hari Ini)" : activePeriod === "week" ? "(Minggu Ini)" : activePeriod === "month" ? "(Bulan Ini)" : "(Semua)"}</h2>
+                <h2 className="text-base md:text-xl font-bold text-slate-900">Sesi Selesai</h2>
                 <span className="text-xs md:text-sm font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{completedSessions.length}</span>
               </div>
-              <DateFilterDropdown currentFilter={activePeriod || "today"} onFilterChange={handlePeriodChange} />
+              <div className="w-full sm:w-auto flex-shrink-0">
+                <DateRangePicker />
+              </div>
             </div>
             <div className="space-y-3 opacity-60 hover:opacity-100 transition-opacity">
               {paginatedCompleted.length === 0 ? (

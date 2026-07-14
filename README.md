@@ -30,6 +30,10 @@ DATABASE_URL="postgresql://user:password@host/neondb?sslmode=require"
 
 # Clerk Webhook (Required for User Sync)
 CLERK_WEBHOOK_SECRET=whsec_...
+
+# Cloudinary (Secure Cloud Image Storage)
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_unsigned_preset # Must be an Unsigned preset
 ```
 
 ### 3. Database Sync (Wajib dilakukan setelah update skema)
@@ -59,7 +63,7 @@ npm run dev
 - `/lib` - Core configurations (Prisma Client, dll.)
 - `/prisma` - Database schema and configurations
 
-## 🌟 Fitur Utama & Pembaruan Terkini (Versi 4.53)
+## 🌟 Fitur Utama & Pembaruan Terkini (Versi 4.86)
 *Sistem kini beroperasi penuh dengan skalabilitas tingkat Enterprise:*
 **User Roles yang Didukung:** Member, Admin, Superadmin, dan Trainer.
 
@@ -84,6 +88,9 @@ npm run dev
 8. **Bypass Keterbatasan IAM (Clerk):** *Custom Onboarding Flow* menyimpan atribut krusial (`phoneNumber`, `address`) langsung ke Neon DB menggunakan operasi *Atomic Upsert* yang tangguh terhadap `Unique constraint failed`.
 9. **Modul Point-of-Sale (POS) Hibrida:** Proses *checkout* paket langganan dan kelas PT dikelola secara *Offline-First*. Pembayaran diproses di meja Kasir untuk menekan biaya potongan *Payment Gateway*.
 10. **Proteksi Anti Double-Booking & Anti-Looping:** Logika backend mengunci tombol pembelian jika status VIP aktif, dan *greyed-out* slot waktu PT jika kuota maksimum (`maxCapacity`) telah terpenuhi.
+11. **Secure Cloud Image Storage (Receipts/Kwitansi):** Penyimpanan bukti transaksi yang aman menggunakan Cloudinary REST API, dilengkapi dengan kompresi Canvas di sisi klien untuk efisiensi penyimpanan (< 300KB).
+12. **Advanced Financial Reporting:** Pembuatan laporan Excel dinamis yang mengkalkulasi Laba/Rugi Bersih (Net Profit/Loss). Fitur ini diamankan oleh RBAC ketat (Hanya bisa diakses `SUPER_ADMIN`).
+13. **Modern Global Date Range Picker:** Implementasi *date picker* lokal (Bahasa Indonesia) yang responsif dengan filter dinamis dan grafik otomatis yang beradaptasi (berdasarkan Jam/Hari/Bulan).
 
 ## 🛡 License
 Premium License - Personal and Commercial use for your own SaaS products.

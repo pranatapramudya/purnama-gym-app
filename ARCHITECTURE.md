@@ -120,3 +120,12 @@ Sistem menerapkan kalkulasi matematis global di seluruh tabel operasional (Trans
 
 ### 📅 7.3 Daily Visit Data Modeling (Visit Harian)
 Alih-alih melakukan migrasi skema Prisma yang kompleks dan berisiko untuk mengakomodasi model langganan "Visit Harian" (1-Hari), sistem memanfaatkan bendera logika fungsional `durationMonths === 0`. Jika sebuah entitas `MembershipPackage` memiliki nilai durasi 0 bulan, aplikasi secara cerdas akan mengkategorikannya sebagai paket *Visit Harian* dan secara otomatis mengklasifikasikan transaksi tersebut menjadi `HARIAN`. Pendekatan ini menghemat kompleksitas *schema* selagi mempertahankan kapabilitas modul CRM terpadu yang memadukan member VIP dan pelanggan Harian di satu pintu Kasir yang sama.
+
+### ☁️ 7.4 Storage Strategy (Cloudinary)
+Untuk manajemen file bukti pembayaran (Kwitansi), sistem memutuskan menggunakan REST API dari Cloudinary (mengurangi beban ketergantungan dari SDK *client* yang berat). Alurnya sangat teroptimasi: File terlebih dahulu dikompresi di sisi klien via Canvas (ukuran < 300KB), nama file disanitasi dari karakter terlarang (seperti *slashes*), kemudian diunggah ke Cloudinary secara langsung melalui mode *Unsigned Preset*. Setelah sukses, `secureUrl` dikembalikan dan disimpan secara aman ke dalam tabel Transaksi PostgreSQL melalui Prisma.
+
+### 🎨 7.5 UI & Component Architecture
+Aplikasi mengadopsi standar komponen UI modern yang sangat *composable*, yakni `shadcn/ui` (seperti *Popover* dan *Calendar*), yang digabungkan bersama library fungsional `react-day-picker` dan utilitas waktu `date-fns` (dengan lokalisasi `id`). Desain diimplementasikan dengan sangat hati-hati pada `DateRangePicker` untuk mematuhi prinsip *mobile-first*: di mana *trigger button* bersifat `full-width` pada *mobile*, *shortcut* preset diubah bentuk menjadi *grid* 2x2 atau *horizontal scroll* agar menghemat ruang vertikal layar, sedangkan pada mode *desktop* tetap memanfaatkan desain elegan aslinya.
+
+### 🛡️ 7.6 Security & Data Handling (Cashflow Module)
+Terdapat pemisahan wewenang (*Separation of Concerns*) yang sangat ketat pada arsitektur pelaporan finansial (Buku Kas). Untuk melindungi rahasia operasional bisnis, peran Kasir hanya memiliki akses untuk melihat ringkasan kasar (Pendapatan Kotor, Pengeluaran, dan Saldo Sementara). Di balik layar, kalkulasi detail mengenai Laba Bersih (*Net Profit/Loss*) sepenuhnya dihitung dan diisolasi secara *server-side*, yang hanya dirender dan diekspor ke format Excel khusus untuk akun berstatus `SUPER_ADMIN`.

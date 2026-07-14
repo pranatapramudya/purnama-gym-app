@@ -114,15 +114,16 @@ model GuideVideo {
 }
 
 model CashFlow {
-  id          String       @id @default(cuid())
-  type        CashFlowType
-  amount      Float
-  description String
+  id            String       @id @default(cuid())
+  type          CashFlowType
+  amount        Float
+  description   String
+  buktiKwitansi String?
   
-  adminId     String
-  admin       User         @relation(fields: [adminId], references: [id])
+  adminId       String
+  admin         User         @relation(fields: [adminId], references: [id])
   
-  createdAt   DateTime     @default(now())
+  createdAt     DateTime     @default(now())
 }
 
 model PTSession {

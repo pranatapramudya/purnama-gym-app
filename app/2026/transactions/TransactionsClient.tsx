@@ -8,6 +8,7 @@ import { CheckCircle2, Clock, XCircle, Filter } from "lucide-react";
 import { verifyTransaction } from "@/app/actions/admin";
 import { useResponsivePagination } from "@/hooks/useResponsivePagination";
 import { Pagination } from "@/components/ui/Pagination";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface TransactionItem {
   id: string;
@@ -204,6 +205,9 @@ export default function TransactionsClient({
               </span>
             )}
           </p>
+        </div>
+        <div className="mt-4 sm:mt-0 flex-shrink-0 w-full sm:w-auto">
+          <DateRangePicker />
         </div>
       </div>
 

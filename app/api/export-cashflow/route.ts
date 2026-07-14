@@ -5,37 +5,43 @@ import * as xlsx from "xlsx";
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const filter = searchParams.get('filter') || 'today';
+    const fromParam = searchParams.get('from');
+    const toParam = searchParams.get('to');
 
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    // Start of Week (assuming Monday as first day of week)
-    const dayOfWeek = now.getDay() || 7;
-    const startOfWeek = new Date(startOfToday);
-    startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek + 1);
+    const utcOffset = 7 * 60 * 60 * 1000;
+    const localNow = new Date(now.getTime() + utcOffset);
 
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
-    const tomorrow = new Date(startOfToday);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
 
-    let startDate = startOfToday;
-    let endDate = tomorrow;
-    
-    if (filter === "week") {
-      startDate = startOfWeek;
-    } else if (filter === "month") {
-      startDate = startOfMonth;
-    } else if (filter === "all") {
-      startDate = new Date(0); // beginning of time
+    if (fromParam) {
+      startDate = new Date(fromParam);
+    } else {
+      const startOfTodayLocal = new Date(localNow);
+      startOfTodayLocal.setUTCHours(0, 0, 0, 0);
+      startDate = new Date(startOfTodayLocal.getTime() - utcOffset);
+    }
+
+    if (toParam) {
+      endDate = new Date(toParam);
+      endDate.setUTCHours(23, 59, 59, 999);
+    } else {
+      if (!fromParam) {
+        const endOfTodayLocal = new Date(localNow);
+        endOfTodayLocal.setUTCHours(23, 59, 59, 999);
+        endDate = new Date(endOfTodayLocal.getTime() - utcOffset);
+      } else {
+        endDate = new Date(startDate);
+        endDate.setUTCHours(23, 59, 59, 999);
+      }
     }
 
     const cashflows = await prisma.cashFlow.findMany({
       where: {
         createdAt: {
           gte: startDate,
-          lt: endDate
+          lte: endDate
         }
       },
       include: {

@@ -1,9 +1,10 @@
 /** @type {import('next').NextConfig} */
-import withSerwistInit from "@serwist/next";
+import withPWAInit from "@ducanh2912/next-pwa";
 
-const withSerwist = withSerwistInit({
-  swSrc: "app/sw.ts",
-  swDest: "public/sw.js",
+const withPWA = withPWAInit({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
 });
 
@@ -18,4 +19,4 @@ const nextConfig = {
   turbopack: {}
 };
 
-export default withSerwist(nextConfig);
+export default withPWA(nextConfig);

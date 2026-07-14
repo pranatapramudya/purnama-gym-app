@@ -8,7 +8,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { useResponsivePagination } from "@/hooks/useResponsivePagination";
 import { Pagination } from "@/components/ui/Pagination";
 import { useRouter } from "next/navigation";
-import DateFilterDropdown from "@/components/ui/DateFilterDropdown";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface ScanResult {
   name: string;
@@ -20,7 +20,7 @@ interface ScanResult {
   hasPTSession?: boolean;
 }
 
-export default function ScannerClient({ initialHistory, activePeriod = "today" }: { initialHistory: ScanResult[], activePeriod?: string }) {
+export default function ScannerClient({ initialHistory }: { initialHistory: ScanResult[] }) {
   const router = useRouter();
   const [toast, setToast] = useState({ visible: false, message: "", type: "success" as ToastType });
   const [lastScan, setLastScan] = useState<ScanResult | null>(null);
@@ -45,9 +45,7 @@ export default function ScannerClient({ initialHistory, activePeriod = "today" }
     setCurrentPage(1);
   }, [initialHistory, setCurrentPage]);
 
-  const handlePeriodChange = (newPeriod: string) => {
-    router.push(`?period=${newPeriod}`);
-  };
+
 
   useEffect(() => {
     setMounted(true);
@@ -283,16 +281,18 @@ export default function ScannerClient({ initialHistory, activePeriod = "today" }
         {/* Scan History */}
         <div className="xl:col-span-2">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
+            <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900">Riwayat Check-in {activePeriod === "today" ? "Hari Ini" : activePeriod === "week" ? "Minggu Ini" : activePeriod === "month" ? "Bulan Ini" : "Semua Waktu"}</h3>
+                <h3 className="text-sm font-bold text-slate-900">Riwayat Check-in</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Total: {scanHistory.length} scan tercatat</p>
               </div>
-              <DateFilterDropdown currentFilter={activePeriod} onFilterChange={handlePeriodChange} />
+              <div className="w-full sm:w-auto flex-shrink-0">
+                <DateRangePicker />
+              </div>
             </div>
             <div className="divide-y divide-slate-100 h-[600px] overflow-y-auto">
               {paginatedData.length === 0 ? (
-                <div className="p-8 text-center text-slate-500 text-sm">Belum ada history check-in {activePeriod === "today" ? "hari ini" : activePeriod === "week" ? "minggu ini" : activePeriod === "month" ? "bulan ini" : ""}.</div>
+                <div className="p-8 text-center text-slate-500 text-sm">Belum ada history check-in pada rentang waktu ini.</div>
               ) : (
                 paginatedData.map((scan, idx) => {
                   const globalIdx = (currentPage - 1) * itemsPerPage + idx + 1;

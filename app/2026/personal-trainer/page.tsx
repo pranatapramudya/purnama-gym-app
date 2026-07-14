@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 import ClassesClient from "./ClassesClient";
 import { auth } from "@clerk/nextjs/server";
 
-export default async function ClassesPage(props: { searchParams: Promise<{ period?: string, date?: string }> }) {
+export default async function ClassesPage(props: { searchParams: Promise<{ from?: string, to?: string, date?: string }> }) {
   const searchParams = await props.searchParams;
-  const period = searchParams.period || "today";
+  const fromParam = searchParams.from;
+  const toParam = searchParams.to;
   const dateParam = searchParams.date;
 
   const { userId } = await auth();
@@ -17,47 +18,35 @@ export default async function ClassesPage(props: { searchParams: Promise<{ perio
   const utcOffset = 7 * 60 * 60 * 1000;
   let localNow = new Date(now.getTime() + utcOffset);
 
-  // If a date string is passed, we shift our "localNow" representation to that date
+  // If a date string is passed for the specific monitoring date
   if (dateParam) {
     const [y, m, d] = dateParam.split("-").map(Number);
-    // Use Noon to avoid boundary overlap
     localNow = new Date(Date.UTC(y, m - 1, d, 12, 0, 0, 0));
   }
 
-  let startDate: Date | undefined = undefined;
-  let endDate: Date | undefined = undefined;
+  let startDate: Date;
+  let endDate: Date;
 
-  if (period === "today") {
+  if (fromParam) {
+    startDate = new Date(fromParam);
+  } else {
     const startOfTodayLocal = new Date(localNow);
     startOfTodayLocal.setUTCHours(0, 0, 0, 0);
     startDate = new Date(startOfTodayLocal.getTime() - utcOffset);
-    
-    const endOfTodayLocal = new Date(localNow);
-    endOfTodayLocal.setUTCHours(23, 59, 59, 999);
-    endDate = new Date(endOfTodayLocal.getTime() - utcOffset);
-  } else if (period === "week") {
-    const startOfWeekLocal = new Date(localNow);
-    const day = startOfWeekLocal.getUTCDay();
-    const diff = startOfWeekLocal.getUTCDate() - day + (day === 0 ? -6 : 1);
-    startOfWeekLocal.setUTCDate(diff);
-    startOfWeekLocal.setUTCHours(0, 0, 0, 0);
-    startDate = new Date(startOfWeekLocal.getTime() - utcOffset);
-    
-    const endOfWeekLocal = new Date(startOfWeekLocal);
-    endOfWeekLocal.setUTCDate(endOfWeekLocal.getUTCDate() + 6);
-    endOfWeekLocal.setUTCHours(23, 59, 59, 999);
-    endDate = new Date(endOfWeekLocal.getTime() - utcOffset);
-  } else if (period === "month") {
-    const startOfMonthLocal = new Date(localNow);
-    startOfMonthLocal.setUTCDate(1);
-    startOfMonthLocal.setUTCHours(0, 0, 0, 0);
-    startDate = new Date(startOfMonthLocal.getTime() - utcOffset);
-    
-    const endOfMonthLocal = new Date(localNow);
-    endOfMonthLocal.setUTCMonth(endOfMonthLocal.getUTCMonth() + 1);
-    endOfMonthLocal.setUTCDate(0);
-    endOfMonthLocal.setUTCHours(23, 59, 59, 999);
-    endDate = new Date(endOfMonthLocal.getTime() - utcOffset);
+  }
+
+  if (toParam) {
+    endDate = new Date(toParam);
+    endDate.setUTCHours(23, 59, 59, 999);
+  } else {
+    if (!fromParam) {
+      const endOfTodayLocal = new Date(localNow);
+      endOfTodayLocal.setUTCHours(23, 59, 59, 999);
+      endDate = new Date(endOfTodayLocal.getTime() - utcOffset);
+    } else {
+      endDate = new Date(startDate);
+      endDate.setUTCHours(23, 59, 59, 999);
+    }
   }
 
   const sessionWhereClause: any = currentUser?.role === "TRAINER" 
@@ -188,5 +177,5 @@ export default async function ClassesPage(props: { searchParams: Promise<{ perio
 
   mergedTodaySessions.sort((a, b) => a.timeStr.localeCompare(b.timeStr));
 
-  return <ClassesClient initialSessions={formattedSessions} userRole={currentUser?.role || "ADMIN_KASIR"} initialSlots={scheduleSlots as any} trainers={trainers} todaySessions={mergedTodaySessions} activePeriod={period} />;
+  return <ClassesClient initialSessions={formattedSessions} userRole={currentUser?.role || "ADMIN_KASIR"} initialSlots={scheduleSlots as any} trainers={trainers} todaySessions={mergedTodaySessions} />;
 }

@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET(request: Request) {
   try {
+    const { userId } = await auth();
+    let isSuperAdmin = false;
+    
+    if (userId) {
+      const user = await prisma.user.findUnique({
+        where: { clerkUserId: userId },
+        select: { role: true }
+      });
+      isSuperAdmin = user?.role === 'SUPER_ADMIN';
+    }
+
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get('filter') || 'today';
 
@@ -150,6 +162,40 @@ export async function GET(request: Request) {
       };
     });
     createSheet(checkInData, "Data Kunjungan", [{ wch: 30 }, { wch: 30 }, { wch: 20 }, { wch: 20 }]);
+
+    // Prepare Sheet 4 (Only for SUPER_ADMIN)
+    if (isSuperAdmin) {
+      let totalPemasukan = 0;
+      let totalPengeluaran = 0;
+      
+      cashFlows.forEach(cf => {
+        if (cf.type === 'INCOME') totalPemasukan += cf.amount;
+        else totalPengeluaran += cf.amount;
+      });
+      
+      const labaRugi = totalPemasukan - totalPengeluaran;
+      
+      const wsKeuangan = xlsx.utils.aoa_to_sheet([
+        ["METRIK", "NILAI"],
+        ["Total Pemasukan", totalPemasukan],
+        ["Total Pengeluaran", totalPengeluaran],
+        ["Laba / Rugi Bersih", labaRugi]
+      ]);
+
+      // Formatting as Currency
+      wsKeuangan['!cols'] = [{ wch: 30 }, { wch: 25 }];
+      if (wsKeuangan['!ref']) {
+        const range = xlsx.utils.decode_range(wsKeuangan['!ref']);
+        for (let R = 1; R <= range.e.r; ++R) {
+          const cellAddress = xlsx.utils.encode_cell({ r: R, c: 1 });
+          if (wsKeuangan[cellAddress]) {
+            wsKeuangan[cellAddress].z = '"Rp"#,##0.00';
+          }
+        }
+      }
+
+      xlsx.utils.book_append_sheet(wb, wsKeuangan, "Ringkasan Keuangan");
+    }
 
     // Convert to buffer
     const buf = xlsx.write(wb, { type: "buffer", bookType: "xlsx" });

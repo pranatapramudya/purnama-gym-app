@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Users, TrendingUp, CalendarDays, Activity, Download, Calendar, ChevronDown, RefreshCw } from "lucide-react";
-import DateFilterDropdown from "@/components/ui/DateFilterDropdown";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import {
   AreaChart,
   Area,
@@ -24,21 +24,9 @@ type DashboardProps = {
   nonMembers: number;
   classesToday: number;
   checkinsToday: number;
-  revenue: {
-    today: number;
-    week: number;
-    month: number;
-    last_month?: number;
-    year: number;
-  };
-  charts: {
-    today: ChartData;
-    week: ChartData;
-    month: ChartData;
-    last_month?: ChartData;
-    year: ChartData;
-  };
+  revenue: number;
   recentCheckins: any[];
+  chartData: ChartData;
 };
 
 export default function DashboardClient({
@@ -48,23 +36,17 @@ export default function DashboardClient({
   classesToday,
   checkinsToday,
   revenue,
-  charts,
+  chartData,
   recentCheckins,
 }: DashboardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const filterParam = searchParams.get("filter") || "today";
   
-  // The active filter used for the charts (if we want to keep them local) or everything
-  // Wait, the PRD says to connect it to URL parameter so it is persistent.
   const revenueFilter = filterParam as "today" | "week" | "month" | "last_month" | "year";
   
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const handleFilterChange = (newFilter: string) => {
-    router.push(`?filter=${newFilter}`);
-  };
 
   // Polling data every 30 seconds invisibly
   useEffect(() => {
@@ -81,38 +63,9 @@ export default function DashboardClient({
     setTimeout(() => setIsRefreshing(false), 1000); // Visual spin duration
   };
 
-  const getRevenueValue = () => {
-    switch (revenueFilter) {
-      case "today": return revenue.today;
-      case "week": return revenue.week;
-      case "month": return revenue.month;
-      case "last_month": return revenue.last_month || 0;
-      case "year": return revenue.year;
-      default: return revenue.today;
-    }
-  };
-
-  const getRevenueLabel = () => {
-    switch (revenueFilter) {
-      case "today": return "Pendapatan Hari Ini";
-      case "week": return "Pendapatan Minggu Ini";
-      case "month": return "Pendapatan Bulan Ini";
-      case "last_month": return "Pendapatan Bulan Lalu";
-      case "year": return "Pendapatan Tahun Ini";
-      default: return "Pendapatan Hari Ini";
-    }
-  };
-
-  const getChartData = () => {
-    switch (revenueFilter) {
-      case "today": return charts.today;
-      case "week": return charts.week;
-      case "month": return charts.month;
-      case "last_month": return charts.last_month || charts.month;
-      case "year": return charts.year;
-      default: return charts.today;
-    }
-  };
+  const getRevenueValue = () => revenue;
+  const getRevenueLabel = () => "Total Pendapatan";
+  const getChartData = () => chartData;
 
   const stats = [
     ...(userRole === 'super_admin' ? [{
@@ -135,7 +88,7 @@ export default function DashboardClient({
       shadow: "shadow-emerald-500/20",
     }] : []),
     {
-      label: `Sesi PT ${revenueFilter === 'today' ? 'Hari Ini' : revenueFilter === 'month' ? 'Bulan Ini' : revenueFilter === 'week' ? 'Minggu Ini' : 'Tahun Ini'}`,
+      label: `Sesi PT`,
       value: `${classesToday} Sesi`,
       change: "Real-time",
       trend: "neutral" as const,
@@ -144,7 +97,7 @@ export default function DashboardClient({
       shadow: "shadow-rose-500/20",
     },
     {
-      label: `Check-in ${revenueFilter === 'today' ? 'Hari Ini' : revenueFilter === 'month' ? 'Bulan Ini' : revenueFilter === 'week' ? 'Minggu Ini' : 'Tahun Ini'}`,
+      label: `Check-in`,
       value: checkinsToday.toString(),
       change: "Real-time",
       trend: "neutral" as const,
@@ -180,7 +133,7 @@ export default function DashboardClient({
           
           {userRole === 'super_admin' && (
             <Link
-              href={`/api/export?filter=${revenueFilter}`}
+              href={`/api/export?from=${searchParams.get('from') || ''}&to=${searchParams.get('to') || ''}`}
               className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
             >
               <Download className="w-4 h-4" />
@@ -192,15 +145,10 @@ export default function DashboardClient({
 
       {/* Filter and Stats */}
       <div className="space-y-4">
-        <div className="flex justify-end relative">
-          {userRole === 'super_admin' ? (
-            <DateFilterDropdown currentFilter={revenueFilter} onFilterChange={handleFilterChange} />
-          ) : (
-            <div className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl shadow-sm text-sm font-semibold text-slate-700">
-              <Calendar className="w-4 h-4 text-emerald-500" />
-              <span>Hari Ini</span>
-            </div>
-          )}
+        <div className="flex flex-col sm:flex-row sm:justify-end relative">
+          <div className="w-full sm:w-auto flex-shrink-0">
+            <DateRangePicker />
+          </div>
         </div>
 
         <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
