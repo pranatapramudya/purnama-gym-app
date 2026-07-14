@@ -16,7 +16,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Purnama Gym',
   description: 'Purnama Gym Sumedang Khusus Wanita',
-  manifest: '/manifest.webmanifest',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     title: 'Purnama Gym',
