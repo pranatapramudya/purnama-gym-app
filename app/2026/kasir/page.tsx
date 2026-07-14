@@ -73,6 +73,7 @@ export default async function KasirPage(props: { searchParams: Promise<{ [key: s
     type: cf.type,
     amount: cf.amount,
     description: cf.description,
+    buktiKwitansi: cf.buktiKwitansi,
     adminName: cf.admin?.name || "Unknown",
     createdAt: cf.createdAt.toISOString()
   }));

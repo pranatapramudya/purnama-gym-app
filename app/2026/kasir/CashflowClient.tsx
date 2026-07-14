@@ -558,10 +558,10 @@ export default function CashflowClient({ initialData, adminId, userRole }: Props
 
       {/* View Image Modal */}
       {isImageModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm" onClick={() => setIsImageModalOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm" onClick={() => { setIsImageModalOpen(false); setSelectedImage(""); }}>
           <div className="relative max-w-3xl w-full animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <button 
-              onClick={() => setIsImageModalOpen(false)}
+              onClick={() => { setIsImageModalOpen(false); setSelectedImage(""); }}
               className="absolute -top-12 right-0 text-white hover:text-slate-200 font-bold text-lg"
             >
               Tutup

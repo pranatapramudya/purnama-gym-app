@@ -16,7 +16,15 @@ const nextConfig = {
   experimental: {
     // Kosongkan dulu kalau ada isinya
   },
-  turbopack: {}
+  turbopack: {},
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+    ],
+  },
 };
 
 export default withPWA(nextConfig);
