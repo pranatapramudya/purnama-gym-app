@@ -56,6 +56,21 @@ To ensure user data synchronizes automatically with your database:
 npm run dev
 ```
 
+## 🧪 Testing Infrastructure
+Purnama Gym utilizes a robust, dual-layered automated testing strategy to guarantee software quality and prevent regressions.
+
+### Unit & Component Testing
+We use **Jest** and **React Testing Library** for isolated, fast execution of component rendering and utility logic.
+- **Run Unit Tests:** `npm run test`
+
+### End-to-End (E2E) & RBAC Testing
+We use **Playwright** to simulate real user flows, including complex Role-Based Access Control (RBAC) boundaries (e.g., verifying `MEMBER` vs `SUPER_ADMIN` restrictions) and API interceptions.
+- **Run E2E Tests:** `npm run test:e2e`
+
+> **⚠️ IMPORTANT:** 
+> - Before running E2E tests, ensure your local development server (port 3000) is either stopped or running a fully clean build (delete `.next` cache if you recently modified `proxy.ts`). Playwright will automatically spin up a test instance.
+> - The framework uses `@next/env` and Prisma in `e2e/global-setup.ts` to automatically seed mock user profiles into your database before tests begin.
+
 ## 📁 Folder Structure
 - `/app` - Next.js App Router (Pages, API, Webhooks)
 - `/components` - Reusable UI components (Shadcn UI ready)

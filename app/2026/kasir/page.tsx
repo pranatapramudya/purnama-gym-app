@@ -3,8 +3,18 @@ import CashflowClient from "@/app/2026/kasir/CashflowClient";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
+import { cookies } from "next/headers";
+
 export default async function KasirPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-  const { userId } = await auth();
+  let { userId } = await auth();
+  const cookieStore = await cookies();
+  const testRole = cookieStore.get("playwright-role")?.value;
+
+  if (testRole === "SUPER_ADMIN") {
+    userId = "test-admin-clerk-id";
+  } else if (testRole === "MEMBER") {
+    userId = "test-member-clerk-id";
+  }
 
   if (!userId) {
     redirect("/");

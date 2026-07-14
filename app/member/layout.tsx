@@ -9,7 +9,19 @@ export default async function MemberLayout({
   children: React.ReactNode;
 }) {
   // Solusi Wajib 1: Auto-Sync User ke Prisma (Auth Wrapper)
-  const clerkUser = await currentUser();
+  let clerkUser = await currentUser();
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  const testRole = cookieStore.get("playwright-role")?.value;
+
+  if (testRole === "MEMBER") {
+    clerkUser = {
+      id: "test-member-clerk-id",
+      emailAddresses: [{ emailAddress: "testmember@playwright.test" }],
+      firstName: "Playwright",
+      lastName: "Member",
+    } as any;
+  }
   
   if (clerkUser) {
     const userEmail = clerkUser.emailAddresses[0]?.emailAddress || `no-email-${clerkUser.id}@gym.com`;

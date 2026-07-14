@@ -129,3 +129,20 @@ Aplikasi mengadopsi standar komponen UI modern yang sangat *composable*, yakni `
 
 ### 🛡️ 7.6 Security & Data Handling (Cashflow Module)
 Terdapat pemisahan wewenang (*Separation of Concerns*) yang sangat ketat pada arsitektur pelaporan finansial (Buku Kas). Untuk melindungi rahasia operasional bisnis, peran Kasir hanya memiliki akses untuk melihat ringkasan kasar (Pendapatan Kotor, Pengeluaran, dan Saldo Sementara). Di balik layar, kalkulasi detail mengenai Laba Bersih (*Net Profit/Loss*) sepenuhnya dihitung dan diisolasi secara *server-side*, yang hanya dirender dan diekspor ke format Excel khusus untuk akun berstatus `SUPER_ADMIN`.
+
+---
+
+## 🧪 8. Arsitektur Pengujian & Validasi (Testing Infrastructure)
+Sistem Purnama Gym menggunakan otomatisasi pengujian dua lapis untuk menjamin kualitas perangkat lunak: *Unit Testing* menggunakan **Jest** dan pengujian integrasi *End-to-End (E2E)* menggunakan **Playwright**.
+
+### 8.1 Strategi End-to-End (E2E) & Role-Based Access Control (RBAC)
+Pengujian E2E tidak memukul API Autentikasi sungguhan (Clerk) untuk menghindari batasan *rate-limiting* dan kompleksitas *test accounts*. Sebaliknya, sistem menggunakan pendekatan *Auth Bypass* berbasis *cookie* yang elegan:
+- **Auth Bypass:** Playwright akan menyuntikkan *cookie* bernama `playwright-role` dengan nilai identitas yang diujikan (misal: `SUPER_ADMIN` atau `MEMBER`). Lapisan pelindung *Edge Proxy* Next.js (`proxy.ts`) dan *Server Components* (`layout.tsx`) secara adaptif membaca nilai *cookie* ini dan mendemostrasikan penyamaran pengguna yang mulus tanpa melalui gerbang *login* Clerk sungguhan. Hal ini memungkinkan validasi RBAC yang sangat cepat dan terpercaya pada rute yang diproteksi.
+
+### 8.2 API Interception (Pencegatan Integrasi Eksternal)
+Untuk mencegah polusi data selama pengujian otomatis (seperti mengunggah ratusan gambar bohongan ke penyimpanan *Cloud* selama tes berjalan), skrip Playwright dikonfigurasi untuk mencegat aliran *network* keluar (*Outbound Network Interception*).
+- **Cloudinary Intercept:** Setiap permintaan API dari aplikasi ke `https://api.cloudinary.com/v1_1/**` akan dicegat (`page.route`). Pengujian lalu merespon secara lokal dengan `secure_url` tiruan sehingga *database* tetap dapat mencatat alur transaksi dengan aman tanpa memicu unggahan jaringan sungguhan.
+
+### 8.3 Global Database Seeding
+Agar pengujian berjalan secara mandiri (*idempotent*), infrastruktur mengandalkan `e2e/global-setup.ts` sebelum tes inti (*test suite*) dimulai.
+- Skrip ini menggunakan `@next/env` untuk menyerap URL *database* dan menginstruksikan **Prisma** agar menjamin keberadaan profil akun *mock user* (`SUPER_ADMIN` dan `MEMBER`) dalam *database*. Data *seed* ini telah dilengkapi dengan bidang wajib seperti `phoneNumber` dan `address` guna melompati siklus *Onboarding* aplikasi.
