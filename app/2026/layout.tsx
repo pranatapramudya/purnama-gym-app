@@ -29,6 +29,10 @@ export default async function AdminLayout({
     userId = "test-admin-clerk-id";
   } else if (testRole === "MEMBER") {
     userId = "test-member-clerk-id";
+  } else if (testRole === "ADMIN_KASIR") {
+    userId = "test-kasir-clerk-id";
+  } else if (testRole === "PERSONAL_TRAINER") {
+    userId = "test-trainer-clerk-id";
   }
 
   if (!userId) {

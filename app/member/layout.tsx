@@ -21,6 +21,20 @@ export default async function MemberLayout({
       firstName: "Playwright",
       lastName: "Member",
     } as any;
+  } else if (testRole === "ADMIN_KASIR") {
+    clerkUser = {
+      id: "test-kasir-clerk-id",
+      emailAddresses: [{ emailAddress: "testkasir@playwright.test" }],
+      firstName: "Playwright",
+      lastName: "Kasir",
+    } as any;
+  } else if (testRole === "PERSONAL_TRAINER") {
+    clerkUser = {
+      id: "test-trainer-clerk-id",
+      emailAddresses: [{ emailAddress: "testtrainer@playwright.test" }],
+      firstName: "Playwright",
+      lastName: "Trainer",
+    } as any;
   }
   
   if (clerkUser) {

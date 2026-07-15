@@ -64,10 +64,18 @@ We use **Jest** and **React Testing Library** for isolated, fast execution of co
 - **Run Unit Tests:** `npm run test`
 
 ### End-to-End (E2E) & RBAC Testing
-We use **Playwright** to simulate real user flows, including complex Role-Based Access Control (RBAC) boundaries (e.g., verifying `MEMBER` vs `SUPER_ADMIN` restrictions) and API interceptions.
+We use **Playwright** to simulate real user flows and validate 100% of our critical path Role-Based Access Control (RBAC) boundaries. This ensures complete data isolation across our multi-tenant architecture. 
+
+Currently, the automated testing framework executes four distinct test suites representing each core role:
+1. **Super Admin Suite (`cashflow.spec.ts`)**: Validates full administrative access (e.g., Catat Transaksi).
+2. **Member Suite (`member.spec.ts`)**: Validates Member Dashboard access and confirms absolute restriction from any Admin panels.
+3. **Kasir Suite (`kasir.spec.ts`)**: Validates the Cashier's ability to access the POS/Buku Kas, while asserting they are strictly blocked from Super Admin routes (like `/2026/staff`).
+4. **Trainer Suite (`trainer.spec.ts`)**: Validates Personal Trainer schedule access while asserting strict isolation from Kasir/Financial modules.
+
 - **Run E2E Tests:** `npm run test:e2e`
 
 > **⚠️ IMPORTANT:** 
+> - `npm run test:e2e` uses mock data to seamlessly bypass Clerk authentication, ensuring tests run blindingly fast without rate-limiting.
 > - Before running E2E tests, ensure your local development server (port 3000) is either stopped or running a fully clean build (delete `.next` cache if you recently modified `proxy.ts`). Playwright will automatically spin up a test instance.
 > - The framework uses `@next/env` and Prisma in `e2e/global-setup.ts` to automatically seed mock user profiles into your database before tests begin.
 

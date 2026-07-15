@@ -37,6 +37,42 @@ async function globalSetup() {
         address: 'Playwright St. 123',
       }
     });
+    await prisma.user.upsert({
+      where: { clerkUserId: 'test-kasir-clerk-id' },
+      update: {
+        role: 'ADMIN_KASIR',
+        phoneNumber: '081234567891',
+        address: 'Playwright Kasir St. 124',
+      },
+      create: {
+        clerkUserId: 'test-kasir-clerk-id',
+        email: 'testkasir@playwright.test',
+        name: 'Playwright Kasir',
+        shortId: 'T-KASR',
+        role: 'ADMIN_KASIR',
+        phoneNumber: '081234567891',
+        address: 'Playwright Kasir St. 124',
+      }
+    });
+
+    await prisma.user.upsert({
+      where: { clerkUserId: 'test-trainer-clerk-id' },
+      update: {
+        role: 'TRAINER',
+        phoneNumber: '081234567892',
+        address: 'Playwright Trainer St. 125',
+      },
+      create: {
+        clerkUserId: 'test-trainer-clerk-id',
+        email: 'testtrainer@playwright.test',
+        name: 'Playwright Trainer',
+        shortId: 'T-TRNR',
+        role: 'TRAINER',
+        phoneNumber: '081234567892',
+        address: 'Playwright Trainer St. 125',
+      }
+    });
+
     console.log('Mock users seeded successfully.');
   } catch (error) {
     console.error('Failed to seed test user', error);

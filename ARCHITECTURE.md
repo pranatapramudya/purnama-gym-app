@@ -136,8 +136,9 @@ Terdapat pemisahan wewenang (*Separation of Concerns*) yang sangat ketat pada ar
 Sistem Purnama Gym menggunakan otomatisasi pengujian dua lapis untuk menjamin kualitas perangkat lunak: *Unit Testing* menggunakan **Jest** dan pengujian integrasi *End-to-End (E2E)* menggunakan **Playwright**.
 
 ### 8.1 Strategi End-to-End (E2E) & Role-Based Access Control (RBAC)
-Pengujian E2E tidak memukul API Autentikasi sungguhan (Clerk) untuk menghindari batasan *rate-limiting* dan kompleksitas *test accounts*. Sebaliknya, sistem menggunakan pendekatan *Auth Bypass* berbasis *cookie* yang elegan:
-- **Auth Bypass:** Playwright akan menyuntikkan *cookie* bernama `playwright-role` dengan nilai identitas yang diujikan (misal: `SUPER_ADMIN` atau `MEMBER`). Lapisan pelindung *Edge Proxy* Next.js (`proxy.ts`) dan *Server Components* (`layout.tsx`) secara adaptif membaca nilai *cookie* ini dan mendemostrasikan penyamaran pengguna yang mulus tanpa melalui gerbang *login* Clerk sungguhan. Hal ini memungkinkan validasi RBAC yang sangat cepat dan terpercaya pada rute yang diproteksi.
+Pengujian E2E tidak memukul API Autentikasi sungguhan (Clerk) untuk menghindari batasan *rate-limiting* dan kompleksitas *test accounts*. Sebaliknya, sistem menggunakan pendekatan *Auth Bypass* berbasis *cookie* yang sangat elegan untuk menguji arsitektur multi-peran secara komprehensif:
+- **Auth Bypass:** Playwright menyuntikkan *cookie* bernama `playwright-role` yang berisi nilai identitas spesifik (`SUPER_ADMIN`, `MEMBER`, `ADMIN_KASIR`, atau `PERSONAL_TRAINER`). 
+- **Mock User Injection:** Lapisan pelindung *Edge Proxy* Next.js (`proxy.ts`), *Server Components* (`app/2026/layout.tsx`, `app/member/layout.tsx`), dan *Pages* secara adaptif membaca *cookie* ini. Sistem kemudian menginjeksi `userId` tiruan (seperti `test-kasir-clerk-id` atau `test-trainer-clerk-id`) untuk mendemonstrasikan penyamaran pengguna yang sempurna tanpa melewati gerbang login Clerk sungguhan. Hal ini memungkinkan validasi 100% jalur kritis RBAC yang sangat cepat dan terisolasi secara data.
 
 ### 8.2 API Interception (Pencegatan Integrasi Eksternal)
 Untuk mencegah polusi data selama pengujian otomatis (seperti mengunggah ratusan gambar bohongan ke penyimpanan *Cloud* selama tes berjalan), skrip Playwright dikonfigurasi untuk mencegat aliran *network* keluar (*Outbound Network Interception*).
@@ -145,4 +146,5 @@ Untuk mencegah polusi data selama pengujian otomatis (seperti mengunggah ratusan
 
 ### 8.3 Global Database Seeding
 Agar pengujian berjalan secara mandiri (*idempotent*), infrastruktur mengandalkan `e2e/global-setup.ts` sebelum tes inti (*test suite*) dimulai.
-- Skrip ini menggunakan `@next/env` untuk menyerap URL *database* dan menginstruksikan **Prisma** agar menjamin keberadaan profil akun *mock user* (`SUPER_ADMIN` dan `MEMBER`) dalam *database*. Data *seed* ini telah dilengkapi dengan bidang wajib seperti `phoneNumber` dan `address` guna melompati siklus *Onboarding* aplikasi.
+- Skrip ini menggunakan `@next/env` untuk menyerap URL *database* dan menginstruksikan **Prisma** agar menjamin keberadaan 4 profil akun *mock user* (`SUPER_ADMIN`, `MEMBER`, `ADMIN_KASIR`, dan `PERSONAL_TRAINER`) di dalam *database*.
+- **Onboarding Bypass:** Data *seed* ini telah dilengkapi dengan bidang wajib seperti `phoneNumber` dan `address` secara bawaan. Ini sangat krusial untuk mencegah terjadinya *redirect loop* ke halaman *Onboarding* selama pengujian otomatis berlangsung.
