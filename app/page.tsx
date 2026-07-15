@@ -40,15 +40,24 @@ export default async function Home() {
           <span className="text-slate-900 font-black tracking-tight">PURNAMA GYM</span>
         </div>
         
-        <div className="flex items-center gap-3 md:gap-4">
-          <Link href="/sign-in" className="text-xs md:text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors whitespace-nowrap cursor-pointer">
-            Masuk
-          </Link>
-          <Link href="/sign-up">
-            <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-full px-4 md:px-5 font-bold transition-all text-xs md:text-sm shadow-sm border-0 cursor-pointer">
-              Daftar
-            </Button>
-          </Link>
+        <div className="flex flex-row items-center gap-3 md:gap-4 justify-end">
+          <div className="flex items-center gap-2 mr-0 md:mr-2">
+            <span className="hidden md:inline-block text-sm text-slate-500 font-medium">Sudah punya akun?</span>
+            <Link href="/sign-in" className="text-sm font-bold text-slate-800 hover:text-emerald-600 transition-colors">
+              Masuk
+            </Link>
+          </div>
+          <div className="flex items-center gap-3 pl-3 md:pl-4 border-l border-slate-200">
+            <span className="hidden md:inline-block text-sm text-slate-500 font-medium">Belum punya akun?</span>
+            <div className="flex flex-col items-center justify-center">
+              <span className="text-[10px] text-slate-500 leading-none mb-1 md:hidden font-normal">Belum punya akun?</span>
+              <Link href="/sign-up">
+                <Button size="sm" className="h-8 md:h-9 bg-emerald-600 text-white hover:bg-emerald-700 rounded-full px-4 md:px-5 font-bold transition-all text-sm shadow-sm cursor-pointer border-0">
+                  Daftar
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </nav>
 
@@ -62,9 +71,9 @@ export default async function Home() {
           <span className="font-medium">Khusus Wanita (Women-Only)</span>
         </div>
 
-        <h1 className="max-w-4xl text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1]">
+        <h1 className="max-w-4xl text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 leading-[1.1] px-4 md:px-0 break-words">
           Ruang Kebugaran Eksklusif <br className="hidden md:block"/> 
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 italic pr-2">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 italic pr-4 inline-block">
             di Sumedang.
           </span>
         </h1>
@@ -72,6 +81,7 @@ export default async function Home() {
         <p className="max-w-2xl text-slate-600 text-lg md:text-xl mb-12 leading-relaxed font-medium">
           Tingkatkan kesehatan dan kepercayaan diri Anda di lingkungan yang aman, nyaman, dan sepenuhnya dirancang khusus untuk privasi wanita.
         </p>
+
 
 
       </main>

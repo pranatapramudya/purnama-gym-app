@@ -115,6 +115,13 @@ Currently, the automated testing framework executes four distinct test suites re
 12. **Advanced Financial Reporting:** Pembuatan laporan Excel dinamis yang mengkalkulasi Laba/Rugi Bersih (Net Profit/Loss). Fitur ini diamankan oleh RBAC ketat (Hanya bisa diakses `SUPER_ADMIN`).
 13. **Modern Global Date Range Picker:** Implementasi *date picker* lokal (Bahasa Indonesia) yang responsif dengan filter dinamis dan grafik otomatis yang beradaptasi (berdasarkan Jam/Hari/Bulan).
 
+### 🚀 Recent Updates (July 2026)
+- **Client-Side PDF Reporting:** Implemented one-click, structured tabular PDF generation for Financial Transactions and Completed PT Sessions.
+- **Enhanced Member UX:** Standardized signature green gradient headers across all member pages for brand consistency.
+- **Inline Video Tutorials:** Replaced external YouTube links with responsive, inline `iframe` video players complete with client-side pagination (max 3 videos per page).
+- **Enterprise Dashboard Layout:** Replaced bulky pagination with locked-height "Scrollable Widgets" (`max-h-[500px]`, `max-h-[300px]`) on the Super Admin PT Dashboard to maintain grid integrity regardless of data volume.
+- **Mobile-First Auth UI:** Refactored the landing page Navbar to feature stacked micro-copy CTAs for a premium, conversion-optimized mobile experience.
+
 ## 🛡 License
 Premium License - Personal and Commercial use for your own SaaS products.
 

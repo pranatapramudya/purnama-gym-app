@@ -10,19 +10,20 @@ export default async function PaymentPage({ searchParams }: { searchParams: Prom
     packageData = await prisma.membershipPackage.findUnique({
       where: { id: packageId }
     });
+  } else if (type === 'visit') {
+    packageData = await prisma.membershipPackage.findFirst({
+      where: { durationMonths: 0 },
+      orderBy: { createdAt: 'desc' }
+    });
+  } else if (type === 'vip') {
+    packageData = await prisma.membershipPackage.findFirst({
+      where: { durationMonths: { gt: 0 } },
+      orderBy: { price: 'asc' }
+    });
   }
 
-  // Fallback for daily pass which might not be in the MembershipPackage table if it's separate
   let defaultData = null;
-  if (type === 'daily') {
-    defaultData = {
-      title: "Visit Harian (Daily Pass)",
-      priceStr: "Rp 20.000",
-      amount: 20000,
-      txType: "HARIAN",
-      isDaily: true,
-    };
-  } else if (packageData) {
+  if (packageData) {
     defaultData = {
       title: packageData.name,
       priceStr: `Rp ${packageData.price.toLocaleString("id-ID")}`,

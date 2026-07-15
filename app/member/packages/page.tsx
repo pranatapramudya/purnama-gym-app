@@ -2,8 +2,25 @@ import { Check, Star } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
-export default async function PackagesPage() {
+export default async function PackagesPage({ searchParams }: { searchParams: Promise<{ kategori?: string }> }) {
+  const { kategori } = await searchParams;
+
+  let whereClause = {};
+  let pageTitle = "Paket & Visit Harian";
+  let pageSubtitle = "Pilih durasi paket atau kunjungan harian";
+
+  if (kategori === "vip") {
+    whereClause = { durationMonths: { gt: 0 } };
+    pageTitle = "Paket VIP Membership";
+    pageSubtitle = "Pilih durasi paket keanggotaan VIP Anda";
+  } else if (kategori === "visit") {
+    whereClause = { durationMonths: 0 };
+    pageTitle = "Visit Harian";
+    pageSubtitle = "Beli tiket kunjungan harian Anda";
+  }
+
   const dbPackages = await prisma.membershipPackage.findMany({
+    where: whereClause,
     orderBy: { price: "asc" }
   });
 
@@ -29,13 +46,14 @@ export default async function PackagesPage() {
 
   return (
     <div className="p-4 space-y-6">
-      <header className="flex items-center gap-4">
-        <Link href="/member/dashboard" className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors">
+      <header className="bg-gradient-to-br from-emerald-200 via-teal-300 to-emerald-400 px-6 pt-10 pb-8 rounded-b-[2.5rem] shadow-xl shadow-teal-900/10 border-b border-white/60 mb-6 relative overflow-hidden -mx-4 -mt-4 flex items-center gap-4">
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none"></div>
+        <Link href="/member/dashboard" className="relative z-10 w-10 h-10 rounded-full bg-white/20 border border-slate-800/10 flex items-center justify-center text-slate-900 hover:bg-white/30 transition-colors font-bold text-lg">
           &larr;
         </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Paket & Visit Harian</h1>
-          <p className="text-sm text-slate-500 mt-1">Pilih durasi paket atau kunjungan harian</p>
+        <div className="relative z-10">
+          <h1 className="text-2xl font-bold text-slate-900">{pageTitle}</h1>
+          <p className="text-sm font-medium text-slate-700/90 mt-1">{pageSubtitle}</p>
         </div>
       </header>
 

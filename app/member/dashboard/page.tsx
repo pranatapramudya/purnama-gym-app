@@ -82,7 +82,7 @@ export default async function MemberDashboard() {
               </div>
             ) : (
               <Link 
-                href="/member/packages" 
+                href="/member/packages?kategori=vip" 
                 className="bg-white aspect-[2/1] rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-center group"
               >
                 <Image src="/icons/vip.png" alt="VIP Membership" width={28} height={28} className="object-contain mx-auto mb-0.5 w-7 h-7 group-hover:scale-110 transition-transform" />
@@ -92,7 +92,7 @@ export default async function MemberDashboard() {
               </Link>
             )}
 
-            <Link href="/member/payment?type=daily" className="bg-white aspect-[2/1] rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-center group">
+            <Link href="/member/packages?kategori=visit" className="bg-white aspect-[2/1] rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col items-center justify-center gap-1 text-center group">
               <div className="w-7 h-7 rounded-full bg-rose-50 flex items-center justify-center text-rose-500 group-hover:scale-110 transition-transform mb-0.5">
                 <Ticket className="w-3.5 h-3.5" />
               </div>

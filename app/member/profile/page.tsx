@@ -26,9 +26,6 @@ export default async function ProfilePage() {
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Profil Saya</h1>
           <p className="text-sm font-medium text-slate-700/90 mt-1.5">Kelola akun dan pengaturan</p>
         </div>
-        <button className="relative z-10 w-10 h-10 rounded-full bg-white/20 border border-slate-800/10 flex items-center justify-center text-slate-900 hover:bg-white/30 transition-colors">
-          <Settings className="w-5 h-5" />
-        </button>
       </header>
 
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex items-center gap-4">

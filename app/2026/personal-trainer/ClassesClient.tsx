@@ -1,10 +1,12 @@
 "use client";
 
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { useState, useEffect, useTransition } from "react";
 import { AdminToast, ToastType } from "@/components/admin/AdminToast";
 import { useResponsivePagination } from "@/hooks/useResponsivePagination";
 import { Pagination } from "@/components/ui/Pagination";
-import { CheckCircle2, Play, CheckSquare, Loader2, CalendarClock, Clock, Trash2 } from "lucide-react";
+import { CheckCircle2, Play, CheckSquare, Loader2, CalendarClock, Clock, Trash2, Printer } from "lucide-react";
 import { confirmPTSession, startPTSession, finishPTSession } from "@/app/actions/admin";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
@@ -135,6 +137,54 @@ export default function ClassesClient({
     setSessions(initialSessions);
     setCompletedPage(1);
   }, [initialSessions]);
+
+  const handlePrintPTSessions = () => {
+    const completedSessionsForPrint = sessions.filter(s => s.status === "COMPLETED");
+    if (completedSessionsForPrint.length === 0) {
+      showToast("Tidak ada data sesi untuk dicetak pada rentang tanggal ini.", "error");
+      return;
+    }
+
+    const doc = new jsPDF();
+    
+    doc.setFontSize(16);
+    doc.text("Laporan Sesi Personal Trainer - Purnama Gym", 14, 15);
+    
+    doc.setFontSize(10);
+    const dateRangeStr = searchParams.get("from") && searchParams.get("to") 
+      ? `${searchParams.get("from")} s/d ${searchParams.get("to")}`
+      : "Semua Waktu";
+    doc.text(`Periode: ${dateRangeStr}`, 14, 22);
+
+    const tableColumn = ["No", "ID Booking", "Nama Member", "Nama Trainer", "Paket Latihan", "Waktu Selesai"];
+    const tableRows = completedSessionsForPrint.map((s, index) => {
+      const d = new Date(s.schedule);
+      const timeStr = d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+      const dateStr = d.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+      
+      return [
+        (index + 1).toString(),
+        s.id.substring(0, 8).toUpperCase(),
+        s.memberName || "-",
+        s.trainerName || "-",
+        "Personal Training", // Placeholder since Paket is not in interface
+        `${dateStr} ${timeStr}`
+      ];
+    });
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [16, 185, 129] } // emerald-500
+    });
+
+    doc.autoPrint();
+    const blobUrl = doc.output('bloburl');
+    window.open(blobUrl, '_blank');
+  };
 
 
 
@@ -637,7 +687,7 @@ export default function ClassesClient({
                 )}
               </div>
             </div>
-            <div className={`space-y-3 transition-opacity duration-200 ${isPendingDate ? 'opacity-50' : 'opacity-100'}`}>
+            <div className={`space-y-3 transition-opacity duration-200 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300 ${isPendingDate ? 'opacity-50' : 'opacity-100'}`}>
               {!todaySessions || todaySessions.length === 0 ? (
                 <div className="p-3 md:p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                   Tidak ada jadwal PT untuk hari ini.
@@ -657,7 +707,7 @@ export default function ClassesClient({
               <h2 className="text-base md:text-xl font-bold text-slate-900">Booking Baru (Menunggu Konfirmasi)</h2>
               <span className="text-xs md:text-sm font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">{pendingSessions.length}</span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300">
               {pendingSessions.length === 0 ? (
                 <div className="p-3 md:p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                   Tidak ada booking baru.
@@ -675,27 +725,28 @@ export default function ClassesClient({
                 <h2 className="text-base md:text-xl font-bold text-slate-900">Sesi Selesai</h2>
                 <span className="text-xs md:text-sm font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">{completedSessions.length}</span>
               </div>
-              <div className="w-full sm:w-auto flex-shrink-0">
+              <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-2 flex-shrink-0">
                 <DateRangePicker />
+                <button
+                  onClick={handlePrintPTSessions}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white font-bold text-sm rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+                >
+                  <Printer className="w-4 h-4" />
+                  Cetak Laporan PT
+                </button>
               </div>
             </div>
-            <div className="space-y-3 opacity-60 hover:opacity-100 transition-opacity">
-              {paginatedCompleted.length === 0 ? (
+            <div className="space-y-3 opacity-60 hover:opacity-100 transition-opacity max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300">
+              {completedSessions.length === 0 ? (
                 <div className="p-3 md:p-6 text-center text-slate-500 text-sm bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                   Belum ada sesi yang selesai.
                 </div>
               ) : (
-                paginatedCompleted.map((s, index) => {
-                  const displayIndex = (completedPage - 1) * completedItemsPerPage + index + 1;
-                  return renderCard(s, "NONE", displayIndex);
+                completedSessions.map((s, index) => {
+                  return renderCard(s, "NONE", index + 1);
                 })
               )}
             </div>
-            <Pagination 
-              currentPage={completedPage}
-              totalPages={completedTotalPages}
-              onPageChange={setCompletedPage}
-            />
           </section>
         </div>
 

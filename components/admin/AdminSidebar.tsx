@@ -140,7 +140,7 @@ export function AdminSidebar({ adminName, role = "member" }: AdminSidebarProps) 
   return (
     <>
       {/* Mobile Top Header */}
-      <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-40 shrink-0 w-full sticky top-0">
+      <header className="print:hidden md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-40 shrink-0 w-full sticky top-0">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => setMobileOpen(true)}
@@ -156,13 +156,13 @@ export function AdminSidebar({ adminName, role = "member" }: AdminSidebarProps) 
       {/* Mobile Drawer (Sheet) Overlay */}
       {mobileOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity md:hidden"
+          className="print:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity md:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
       {/* Mobile Drawer Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 w-[260px] bg-slate-900 z-[80] md:hidden transform transition-transform duration-300 flex flex-col ${
+      <aside className={`print:hidden fixed inset-y-0 left-0 w-[260px] bg-slate-900 z-[80] md:hidden transform transition-transform duration-300 flex flex-col ${
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
         <div className="flex items-center justify-between px-4 py-4 border-b border-slate-800">
@@ -178,12 +178,12 @@ export function AdminSidebar({ adminName, role = "member" }: AdminSidebarProps) 
       </aside>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-[260px] flex-col bg-slate-900 border-r border-slate-800 shrink-0">
+      <aside className="print:hidden hidden md:flex w-[260px] flex-col bg-slate-900 border-r border-slate-800 shrink-0">
         {sidebarContent}
       </aside>
 
       {/* Mobile Bottom Navigation Bar (Quick Actions) */}
-      <div className="flex md:hidden fixed bottom-0 w-full bg-slate-900 border-t border-slate-800 z-[60] pb-safe justify-around">
+      <div className="print:hidden flex md:hidden fixed bottom-0 w-full bg-slate-900 border-t border-slate-800 z-[60] pb-safe justify-around">
         <nav className="flex w-full px-2 items-center h-16 justify-around">
           {quickNavItems.map((item) => {
             const Icon = item.icon;

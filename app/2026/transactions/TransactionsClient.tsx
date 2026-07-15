@@ -9,6 +9,8 @@ import { verifyTransaction } from "@/app/actions/admin";
 import { useResponsivePagination } from "@/hooks/useResponsivePagination";
 import { Pagination } from "@/components/ui/Pagination";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface TransactionItem {
   id: string;
@@ -65,6 +67,46 @@ export default function TransactionsClient({
   const filteredTransactions = filterStatus === "ALL"
     ? initialTransactions
     : initialTransactions.filter((t) => t.status === filterStatus);
+
+  const handlePrintPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(14);
+    doc.text("Laporan Transaksi Purnama Gym", 14, 15);
+    
+    doc.setFontSize(10);
+    const dateStrFile = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+    doc.text(`Dicetak pada: ${dateStrFile}`, 14, 22);
+
+    const tableData = filteredTransactions.map((item, index) => {
+      const d = new Date(item.date);
+      const dateStr = `${d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })} ${d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+      
+      return [
+        index + 1,
+        item.id,
+        item.memberName,
+        typeLabels[item.type] || item.type,
+        `Rp ${item.amount.toLocaleString("id-ID")}`,
+        item.method === "TUNAI" ? "Tunai" : "Transfer",
+        statusConfig[item.status]?.label || item.status,
+        dateStr
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 30,
+      head: [['No', 'ID Transaksi', 'Member', 'Paket', 'Nominal', 'Metode', 'Status', 'Waktu']],
+      body: tableData,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [15, 23, 42] } // slate-900
+    });
+
+    doc.autoPrint();
+    // Use dataurlnewwindow to open in new tab and auto trigger print dialog
+    window.open(doc.output('bloburl'), '_blank');
+  };
 
   const { currentPage, itemsPerPage, totalPages, setCurrentPage, paginatedData } = useResponsivePagination(filteredTransactions);
 
@@ -200,19 +242,25 @@ export default function TransactionsClient({
           <p className="text-slate-500 text-sm mt-1">
             {initialTransactions.length} transaksi total
             {pendingCount > 0 && (
-              <span className="ml-1.5 inline-flex items-center gap-1 text-amber-600 font-semibold">
+              <span className="ml-1.5 inline-flex items-center gap-1 text-amber-600 font-semibold print:hidden">
                 · {pendingCount} menunggu verifikasi
               </span>
             )}
           </p>
         </div>
-        <div className="mt-4 sm:mt-0 flex-shrink-0 w-full sm:w-auto">
+        <div className="mt-4 sm:mt-0 flex-shrink-0 w-full sm:w-auto flex items-center gap-2 flex-wrap">
           <DateRangePicker />
+          <button 
+            onClick={handlePrintPDF}
+            className="print:hidden px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 shadow-sm flex items-center gap-2"
+          >
+            Cetak Laporan
+          </button>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 print:hidden">
         <Filter className="w-4 h-4 text-slate-400" />
         {(["ALL", "PENDING", "SUCCESS", "FAILED"] as const).map((status) => (
           <button
@@ -230,13 +278,17 @@ export default function TransactionsClient({
       </div>
 
       {/* Data Table */}
-      <DataTable columns={columns} data={paginatedData} emptyMessage="Tidak ada transaksi" emptyDescription="Belum ada transaksi yang cocok dengan filter ini." />
+      <div className="print:w-full">
+        <DataTable columns={columns} data={paginatedData} emptyMessage="Tidak ada transaksi" emptyDescription="Belum ada transaksi yang cocok dengan filter ini." />
+      </div>
 
-      <Pagination 
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      <div className="print:hidden">
+        <Pagination 
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </div>
 
 
     </div>

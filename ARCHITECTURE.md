@@ -130,6 +130,15 @@ Aplikasi mengadopsi standar komponen UI modern yang sangat *composable*, yakni `
 ### 🛡️ 7.6 Security & Data Handling (Cashflow Module)
 Terdapat pemisahan wewenang (*Separation of Concerns*) yang sangat ketat pada arsitektur pelaporan finansial (Buku Kas). Untuk melindungi rahasia operasional bisnis, peran Kasir hanya memiliki akses untuk melihat ringkasan kasar (Pendapatan Kotor, Pengeluaran, dan Saldo Sementara). Di balik layar, kalkulasi detail mengenai Laba Bersih (*Net Profit/Loss*) sepenuhnya dihitung dan diisolasi secara *server-side*, yang hanya dirender dan diekspor ke format Excel khusus untuk akun berstatus `SUPER_ADMIN`.
 
+### 📄 7.7 Document Generation (Client-Side PDF)
+Sistem menggunakan `jspdf` dan `jspdf-autotable` untuk mengekspor laporan terstruktur (Keuangan & Riwayat PT) secara instan. Diputuskan untuk menggunakan **Client-Side PDF Generation** (mengandalkan Blob URLs dan `doc.autoPrint()`) guna mem-bypass *overhead* rendering di server Next.js (SSR), serta menghindari kesulitan mencetak tabel yang biasanya terganggu oleh CSS responsif (seperti `display: none` pada elemen tabel *mobile*).
+
+### 🖥️ 7.8 Dashboard UI Pattern (Scrollable Widgets)
+Untuk tampilan pengawasan *Dashboard* tingkat *Enterprise* (seperti modul Super Admin PT), sistem mentransisikan antarmuka dari pola *Traditional Pagination* menuju **Fixed-Height Scrollable Widgets** (`max-h-[500px]`, `overflow-y-auto`). Keputusan ini mengunci struktur *grid* layout utama agar tidak pernah rusak (*layout shift*) seberapapun fluktuasi jumlah volume baris data yang sedang dimuat.
+
+### ⚡ 7.9 Next.js Turbopack Compatibility
+Untuk mempertahankan kompatibilitas *hot-reloading* super cepat dengan *Turbopack* (yang diaktifkan via `next dev --turbo`), aplikasi diwajibkan menggunakan *functional imports* standar murni saat memanggil *library* pihak ketiga. Sebagai contoh, saat memanggil pembuat tabel PDF, kita menggunakan deklarasi eksplisit `import autoTable from 'jspdf-autotable'` lalu mengeksekusinya via `autoTable(doc, {...})` alih-alih menggunakan gaya *monkey-patching* warisan (`doc.autoTable()`) yang dijamin akan merusak proses kompilasi *Turbopack*.
+
 ---
 
 ## 🧪 8. Arsitektur Pengujian & Validasi (Testing Infrastructure)
